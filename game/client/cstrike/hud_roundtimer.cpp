@@ -14,9 +14,13 @@
 #include "hud_bitmapnumericdisplay.h"
 #include "c_plantedc4.h"
 #include "cs_hud_color.h"
+#include "filesystem.h"
 
 #include <vgui_controls/AnimationController.h>
 
+static ConVar hud_roundtimer_show_c4( "hud_roundtimer_show_c4", "1", FCVAR_ARCHIVE,
+        "Show C4 countdown in round timer when bomb is planted (0=hide timer, 1=show C4 countdown)" );
+        
 class CHudRoundTimer : public CHudElement, public vgui::Panel
 {
 public:
@@ -88,6 +92,9 @@ void CHudRoundTimer::ApplySchemeSettings(vgui::IScheme *pScheme)
 
 bool CHudRoundTimer::ShouldDraw()
 {
+        if ( filesystem->FileExists( "resource/hud/teamcounter.res", "GAME" ) )
+                return false;
+                
         //necessary?
         C_CSPlayer *pPlayer = C_CSPlayer::GetLocalCSPlayer();
         if ( pPlayer )
@@ -112,8 +119,26 @@ void CHudRoundTimer::Think()
                 timer = (int)ceil(pRules->GetRoundStartTime()-gpGlobals->curtime);
         }
 
-        //If the bomb is planted don't draw -- the timer is irrelevant
-        SetVisible(g_PlantedC4s.Count() == 0);
+        // Handle bomb planted
+        if ( g_PlantedC4s.Count() > 0 )
+        {
+                if ( hud_roundtimer_show_c4.GetBool() )
+                {
+                        // Show C4 countdown instead of round timer
+                        C_PlantedC4 *pC4 = g_PlantedC4s[0];
+                        timer = ( pC4 && pC4->IsBombActive() ) ? MAX( 0, (int)ceil( pC4->m_flC4Blow - gpGlobals->curtime ) ) : 0;
+                        SetVisible( true );
+                }
+                else
+                {
+                        SetVisible( false );
+                        return;
+                }
+        }
+        else
+        {
+                SetVisible( true );
+        }
 
         if(timer > 30)
         {
@@ -210,6 +235,13 @@ void CHudRoundTimer::Paint()
         {
                 // in freeze period countdown to round start time
                 timer = (int)ceil(pRules->GetRoundStartTime()-gpGlobals->curtime);
+        }
+        
+        // When bomb is planted and cvar enabled, display C4 countdown
+        if ( g_PlantedC4s.Count() > 0 && hud_roundtimer_show_c4.GetBool() )
+        {
+                C_PlantedC4 *pC4 = g_PlantedC4s[0];
+                timer = ( pC4 && pC4->IsBombActive() ) ? MAX( 0, (int)ceil( pC4->m_flC4Blow - gpGlobals->curtime ) ) : 0;
         }
         
         if(timer < 0) 

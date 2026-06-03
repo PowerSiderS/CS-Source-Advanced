@@ -14,6 +14,7 @@
 #include "c_plantedc4.h"
 #include "c_cs_playerresource.h"
 #include "cs_gamerules.h"
+#include "filesystem.h"
 #include <vgui_controls/AnimationController.h>
 #include <vgui_controls/EditablePanel.h>
 #include <vgui_controls/Label.h>
@@ -74,7 +75,8 @@ CHudTeamCounter::CHudTeamCounter( const char *pElementName ): CHudElement( pElem
         m_pCTSkullImage = new ImagePanel( this, "CTSkullImage" );
         m_pTSkullImage = new ImagePanel( this, "TSkullImage" );
 
-        LoadControlSettings( "resource/hud/teamcounter.res" );
+        if ( filesystem->FileExists( "resource/hud/teamcounter.res", "GAME" ) )
+                LoadControlSettings( "resource/hud/teamcounter.res" );
 }
 
 void CHudTeamCounter::Init( void )
@@ -98,6 +100,10 @@ void CHudTeamCounter::Reset()
 
 bool CHudTeamCounter::ShouldDraw()
 {
+        // Only draw when teamcounter.res exists — otherwise hud_roundtimer takes over
+        if ( !filesystem->FileExists( "resource/hud/teamcounter.res", "GAME" ) )
+                return false;
+                
         C_CSPlayer *pPlayer = C_CSPlayer::GetLocalCSPlayer();
         if ( !pPlayer )
                 return false;
@@ -226,7 +232,24 @@ void CHudTeamCounter::OnThink()
 
         int iMinutes = m_iRoundTime / 60;
         int iSeconds = m_iRoundTime % 60;
-
+        
+        // If bomb is planted, override timer label with C4 countdown
+        if ( g_PlantedC4s.Count() > 0 )
+        {
+                C_PlantedC4 *pC4 = g_PlantedC4s[0];
+                if ( pC4 && pC4->IsBombActive() )
+                {
+                        int c4Time = MAX( 0, (int)ceil( pC4->m_flC4Blow - gpGlobals->curtime ) );
+                        iMinutes = c4Time / 60;
+                        iSeconds = c4Time % 60;
+                }
+                else
+                {
+                        iMinutes = 0;
+                        iSeconds = 0;
+                }
+        }
+        
         V_snwprintf( unicode, ARRAYSIZE( unicode ), L"%d : %.2d", iMinutes, iSeconds );
         m_pRoundTimerLabel->SetText( unicode );
 }
