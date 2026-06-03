@@ -11,6 +11,7 @@
 #include "clientmode_csnormal.h"
 #include "c_cs_player.h"
 #include "cs_gamerules.h"
+#include "cs_hud_color.h"
 
 #include "c_cs_hostage.h"
 #include "c_plantedc4.h"
@@ -18,18 +19,18 @@
 class CHudScenarioIcon : public CHudElement, public vgui::Panel
 {
 public:
-	DECLARE_CLASS_SIMPLE( CHudScenarioIcon, vgui::Panel );
+        DECLARE_CLASS_SIMPLE( CHudScenarioIcon, vgui::Panel );
 
-	CHudScenarioIcon( const char *name );
+        CHudScenarioIcon( const char *name );
 
-	virtual bool ShouldDraw();	
-	virtual void Paint();
+        virtual bool ShouldDraw();      
+        virtual void Paint();
 
 private:
-	CPanelAnimationVar( Color, m_clrIcon, "IconColor", "IconColor" );	
+        CPanelAnimationVar( Color, m_clrIcon, "IconColor", "IconColor" );       
 
-	CHudTexture *m_pC4Icon;
-	CHudTexture *m_pHostageIcon;
+        CHudTexture *m_pC4Icon;
+        CHudTexture *m_pHostageIcon;
 };
 
 
@@ -37,73 +38,75 @@ DECLARE_HUDELEMENT( CHudScenarioIcon );
 
 
 CHudScenarioIcon::CHudScenarioIcon( const char *pName ) :
-	vgui::Panel( NULL, "HudScenarioIcon" ), CHudElement( pName )
+        vgui::Panel( NULL, "HudScenarioIcon" ), CHudElement( pName )
 {
-	SetParent( g_pClientMode->GetViewport() );
-	m_pC4Icon = NULL;
-	m_pHostageIcon = NULL;
+        SetParent( g_pClientMode->GetViewport() );
+        m_pC4Icon = NULL;
+        m_pHostageIcon = NULL;
 
-	SetHiddenBits( HIDEHUD_PLAYERDEAD );
+        SetHiddenBits( HIDEHUD_PLAYERDEAD );
 }
 
 bool CHudScenarioIcon::ShouldDraw()
 {
-	C_CSPlayer *pPlayer = C_CSPlayer::GetLocalCSPlayer();
-	return pPlayer && pPlayer->IsAlive();
+        C_CSPlayer *pPlayer = C_CSPlayer::GetLocalCSPlayer();
+        return pPlayer && pPlayer->IsAlive();
 }
 
 void CHudScenarioIcon::Paint()
 {
-	// If there is a bomb planted, draw that
-	if( g_PlantedC4s.Count() > 0 )
-	{
-		if ( !m_pC4Icon )
-		{
-			m_pC4Icon = gHUD.GetIcon( "scenario_c4" );
-		}
+        Color hudColor = GetHudColor();
 
-		if ( m_pC4Icon )
-		{
-			int x, y, w, h;
-			GetBounds( x, y, w, h );
+        // If there is a bomb planted, draw that
+        if( g_PlantedC4s.Count() > 0 )
+        {
+                if ( !m_pC4Icon )
+                {
+                        m_pC4Icon = gHUD.GetIcon( "scenario_c4" );
+                }
 
-			C_PlantedC4 *pC4 = g_PlantedC4s[0];
+                if ( m_pC4Icon )
+                {
+                        int x, y, w, h;
+                        GetBounds( x, y, w, h );
 
-			Color c = m_clrIcon;
+                        C_PlantedC4 *pC4 = g_PlantedC4s[0];
 
-			c[3] = 80;
+                        Color c = hudColor;
 
-			if( pC4->m_flNextGlow - gpGlobals->curtime < 0.1 )
-			{
-				c[3] = 255;
-			}
+                        c[3] = 80;
 
-			if( pC4->IsBombActive() )
-				m_pC4Icon->DrawSelf( 0, 0, h, h, c );	//draw it square!
-		}
-	}
+                        if( pC4->m_flNextGlow - gpGlobals->curtime < 0.1 )
+                        {
+                                c[3] = 255;
+                        }
 
-	CCSGameRules *pRules = CSGameRules();
+                        if( pC4->IsBombActive() )
+                                m_pC4Icon->DrawSelf( 0, 0, h, h, c );   //draw it square!
+                }
+        }
 
-	// If there are hostages, draw how many there are
-	if( pRules && pRules->GetNumHostagesRemaining() )
-	{
-		if ( !m_pHostageIcon )
-		{
-			m_pHostageIcon = gHUD.GetIcon( "scenario_hostage" );
-		}
+        CCSGameRules *pRules = CSGameRules();
 
-		if( m_pHostageIcon )
-		{
-			int xpos = 0;
-			int iconWidth = m_pHostageIcon->Width();
+        // If there are hostages, draw how many there are
+        if( pRules && pRules->GetNumHostagesRemaining() )
+        {
+                if ( !m_pHostageIcon )
+                {
+                        m_pHostageIcon = gHUD.GetIcon( "scenario_hostage" );
+                }
 
-			for(int i=0;i<pRules->GetNumHostagesRemaining();i++)
-			{
-				m_pHostageIcon->DrawSelf( xpos, 0, m_clrIcon );
-				xpos += iconWidth;
-			}
-		}
-	}
+                if( m_pHostageIcon )
+                {
+                        int xpos = 0;
+                        int iconWidth = m_pHostageIcon->Width();
+
+                        for(int i=0;i<pRules->GetNumHostagesRemaining();i++)
+                        {
+                                m_pHostageIcon->DrawSelf( xpos, 0, hudColor );
+                                xpos += iconWidth;
+                        }
+                }
+        }
 }
 

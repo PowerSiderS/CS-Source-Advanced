@@ -70,9 +70,10 @@ ConVar default_fov( "default_fov", "90", FCVAR_CHEAT );
 ConVar cl_radar_square_with_scoreboard( "cl_radar_square_with_scoreboard", "1", FCVAR_ARCHIVE, "If set, the radar will toggle to square when the scoreboard is visible." );
 extern ConVar v_viewmodel_fov;
 
-// HUD Color Selection - 0: Red, 1: Blue, 2: Cyan, 3: Lime Green, 4: Rainbow
-ConVar cl_hud_color( "cl_hud_color", "0", FCVAR_ARCHIVE | FCVAR_CLIENTDLL, 
-        "HUD color scheme: 0=Red, 1=Blue, 2=Cyan, 3=Lime Green, 4=Rainbow" );
+ConVar hud_color( "hud_color", "255 50 50", FCVAR_ARCHIVE | FCVAR_CLIENTDLL,
+        "HUD color in R G B format (e.g. \"255 50 50\" for red, \"50 100 255\" for blue)" );
+ConVar hud_colored( "hud_colored", "1", FCVAR_ARCHIVE | FCVAR_CLIENTDLL,
+        "Enable HUD coloring: 1 = on, 0 = off (all HUD elements use white)" );
 
 IClientMode *g_pClientMode = NULL;
 
