@@ -28,15 +28,18 @@ protected:
         MESSAGE_FUNC( OnCheckButtonChecked, "CheckButtonChecked" );
 
 private:
-        CLabeledCommandComboBox*        m_pHudStyle;
         CLabeledCommandComboBox*        m_pPlayerCountPos;
-        CLabeledCommandComboBox*        m_pHudColor;
 
         CCvarToggleCheckButton*         m_pRadarSquare;
         CCvarSlider*                            m_pRadarAlpha;
         CCvarToggleCheckButton*         m_pRadarRotate;
         CCvarSlider*                            m_pRadarScale;
         CCvarToggleCheckButton*         m_pXhairRainbow;
+        CCvarToggleCheckButton*         m_pEnableColorHud;
+        CCvarToggleCheckButton*         m_pDisplayRadarName;
+        CCvarToggleCheckButton*         m_pDisplayRadarHealth;
+        CCvarToggleCheckButton*         m_pDisplayRadarLine;
+        CCvarToggleCheckButton*         m_pDisplayRoundtimerC4;
 };
 
 #endif // CLIENTMODGUIMENU_H

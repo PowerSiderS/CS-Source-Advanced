@@ -315,7 +315,7 @@ ClientModCrosshairMenu::ClientModCrosshairMenu( vgui::Panel *parent ): vgui::Pro
 {
 	m_pCrosshairImage = new CrosshairImagePanelMod( this, "CrosshairImage", this );
 
-	LoadControlSettings( "Resource/ModCrosshairMenu.res" );
+	LoadControlSettings( "Resource/OptionCrosshairMenu.res" );
 }
 
 ClientModCrosshairMenu::~ClientModCrosshairMenu()

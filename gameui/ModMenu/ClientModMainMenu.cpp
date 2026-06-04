@@ -92,7 +92,7 @@ ClientModMainMenu::ClientModMainMenu( vgui::Panel *parent ): vgui::PropertyPage(
 
         m_flNextAvatarUpdateTime = 0.0f;
 
-        LoadControlSettings( "Resource/ModMainMenu.res" );
+        LoadControlSettings( "Resource/OptionViewModel.res" );
 }
 
 //-----------------------------------------------------------------------------
