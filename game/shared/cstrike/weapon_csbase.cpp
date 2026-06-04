@@ -1007,7 +1007,6 @@ void CWeaponCSBase::DefaultTouch(CBaseEntity *pOther)
 
 #if defined( CLIENT_DLL )
 
-static ConVar xhair_enable( "xhair_enable", "0", FCVAR_ARCHIVE );
 static ConVar xhair_size( "xhair_size", "5", FCVAR_ARCHIVE );
 static ConVar xhair_thickness( "xhair_thickness", "1", FCVAR_ARCHIVE );
 static ConVar xhair_gap( "xhair_gap", "2", FCVAR_ARCHIVE );
@@ -1017,7 +1016,7 @@ static ConVar xhair_color_g( "xhair_color_g", "250", FCVAR_ARCHIVE );
 static ConVar xhair_color_b( "xhair_color_b", "50", FCVAR_ARCHIVE );
 static ConVar xhair_color_a( "xhair_color_a", "200", FCVAR_ARCHIVE );
 static ConVar xhair_outline( "xhair_outline", "0", FCVAR_ARCHIVE );
-static ConVar xhair_rainbow( "xhair_rainbow", "0", FCVAR_CLIENTDLL | FCVAR_ARCHIVE, "Enable rainbow crosshair (requires xhair_enable 1)" );
+static ConVar xhair_rainbow( "xhair_rainbow", "0", FCVAR_CLIENTDLL | FCVAR_ARCHIVE, "Enable rainbow crosshair" );
 static ConVar xhair_outline_adjust( "xhair_outline_adjust", "1.0", FCVAR_CLIENTDLL | FCVAR_ARCHIVE, "Adjustment value for xhair outline thickness" );
 static ConVar xhair_t_style( "xhair_t_style", "0", FCVAR_ARCHIVE, "T-style crosshair (no top line)" );
 static ConVar xhair_gap_useweapon( "xhair_gap_useweapon", "0", FCVAR_ARCHIVE, "Use weapon accuracy for crosshair gap" );
@@ -1053,41 +1052,20 @@ void CWeaponCSBase::DrawCrosshair()
         return;
 
     int     r, g, b, a;
-    if ( xhair_enable.GetBool() )
+    if ( xhair_rainbow.GetBool() )
     {
-        if ( xhair_rainbow.GetBool() )
-        {
-            float flTime = gpGlobals->curtime * 2.0f;
-            r = (int)( ( sinf( flTime ) * 0.5f + 0.5f ) * 255.0f );
-            g = (int)( ( sinf( flTime + 2.094f ) * 0.5f + 0.5f ) * 255.0f );
-            b = (int)( ( sinf( flTime + 4.188f ) * 0.5f + 0.5f ) * 255.0f );
-        }
-        else
-        {
-            r = xhair_color_r.GetInt();
-            g = xhair_color_g.GetInt();
-            b = xhair_color_b.GetInt();
-        }
-        a = xhair_color_a.GetInt();
+        float flTime = gpGlobals->curtime * 2.0f;
+        r = (int)( ( sinf( flTime ) * 0.5f + 0.5f ) * 255.0f );
+        g = (int)( ( sinf( flTime + 2.094f ) * 0.5f + 0.5f ) * 255.0f );
+        b = (int)( ( sinf( flTime + 4.188f ) * 0.5f + 0.5f ) * 255.0f );
     }
     else
     {
-        switch ( cl_crosshaircolor.GetInt() )
-        {
-        case 0 :        r = 50;         g = 250;        b = 50;         break;
-        case 1 :        r = 250;        g = 50;         b = 50;         break;
-        case 2 :        r = 50;         g = 50;         b = 250;        break;
-        case 3 :        r = 250;        g = 250;        b = 50;         break;
-        case 4 :        r = 50;         g = 250;        b = 250;        break;
-        case 5 :
-            r = cl_crosshaircolor_r.GetInt();
-            g = cl_crosshaircolor_g.GetInt();
-            b = cl_crosshaircolor_b.GetInt();
-            break;
-        default :       r = 50;         g = 250;        b = 50;         break;
-        }
-        a = clamp( cl_crosshairalpha.GetInt(), 0, 255 );
+        r = xhair_color_r.GetInt();
+        g = xhair_color_g.GetInt();
+        b = xhair_color_b.GetInt();
     }
+    a = xhair_color_a.GetInt();
 
     // if user is using nightvision, make the crosshair red.
     if (pPlayer->m_bNightVisionOn)
@@ -1109,7 +1087,7 @@ void CWeaponCSBase::DrawCrosshair()
         }
     }
 
-    bool bAdditive = !xhair_enable.GetBool() && !cl_crosshairusealpha.GetBool() && !pPlayer->m_bNightVisionOn;
+    bool bAdditive = !xhair_usealpha.GetBool() && !pPlayer->m_bNightVisionOn;
     if ( bAdditive )
     {
         vgui::surface()->DrawSetColor( r, g, b, 200 );
@@ -1128,47 +1106,45 @@ void CWeaponCSBase::DrawCrosshair()
     int x = ScreenWidth() / 2;
     int y = ScreenHeight() / 2;
 
-    if ( xhair_enable.GetBool() )
+    int iSize = RoundFloatToInt(YRES(xhair_size.GetFloat()));
+    int iThickness = MAX( 1, RoundFloatToInt(YRES(xhair_thickness.GetFloat())));
+    int iGap = RoundFloatToInt(YRES(xhair_gap.GetFloat()));
+
+    if ( xhair_outline.GetBool() )
     {
-        int iSize = RoundFloatToInt(YRES(xhair_size.GetFloat()));
-        int iThickness = MAX( 1, RoundFloatToInt(YRES(xhair_thickness.GetFloat())));
-        int iGap = RoundFloatToInt(YRES(xhair_gap.GetFloat()));
-
-        if ( xhair_outline.GetBool() )
-        {
-            vgui::surface()->DrawSetColor( 0, 0, 0, a );
-            int iOutline = RoundFloatToInt( YRES( xhair_outline_adjust.GetFloat() ) );
-            // Outline for top (skip if T-style)
-            if ( !xhair_t_style.GetBool() )
-                vgui::surface()->DrawFilledRect( x - iThickness/2 - iOutline, y - iGap - iSize - iOutline, x + (iThickness+1)/2 + iOutline, y - iGap + iOutline );
-            // Outline for bottom
-            vgui::surface()->DrawFilledRect( x - iThickness/2 - iOutline, y + iGap - iOutline, x + (iThickness+1)/2 + iOutline, y + iGap + iSize + iOutline );
-            // Outline for left
-            vgui::surface()->DrawFilledRect( x - iGap - iSize - iOutline, y - iThickness/2 - iOutline, x - iGap + iOutline, y + (iThickness+1)/2 + iOutline );
-            // Outline for right
-            vgui::surface()->DrawFilledRect( x + iGap - iOutline, y - iThickness/2 - iOutline, x + iGap + iSize + iOutline, y + (iThickness+1)/2 + iOutline );
-            
-            if ( xhair_dot.GetBool() )
-                vgui::surface()->DrawFilledRect( x - iThickness/2 - iOutline, y - iThickness/2 - iOutline, x + (iThickness+1)/2 + iOutline, y + (iThickness+1)/2 + iOutline );
-        }
-
-        vgui::surface()->DrawSetColor( r, g, b, a );
-        // Top (skip if T-style)
+        vgui::surface()->DrawSetColor( 0, 0, 0, a );
+        int iOutline = RoundFloatToInt( YRES( xhair_outline_adjust.GetFloat() ) );
+        // Outline for top (skip if T-style)
         if ( !xhair_t_style.GetBool() )
-            vgui::surface()->DrawFilledRect( x - iThickness/2, y - iGap - iSize, x + (iThickness+1)/2, y - iGap );
-        // Bottom
-        vgui::surface()->DrawFilledRect( x - iThickness/2, y + iGap, x + (iThickness+1)/2, y + iGap + iSize );
-        // Left
-        vgui::surface()->DrawFilledRect( x - iGap - iSize, y - iThickness/2, x - iGap, y + (iThickness+1)/2 );
-        // Right
-        vgui::surface()->DrawFilledRect( x + iGap, y - iThickness/2, x + iGap + iSize, y + (iThickness+1)/2 );
+            vgui::surface()->DrawFilledRect( x - iThickness/2 - iOutline, y - iGap - iSize - iOutline, x + (iThickness+1)/2 + iOutline, y - iGap + iOutline );
+        // Outline for bottom
+        vgui::surface()->DrawFilledRect( x - iThickness/2 - iOutline, y + iGap - iOutline, x + (iThickness+1)/2 + iOutline, y + iGap + iSize + iOutline );
+        // Outline for left
+        vgui::surface()->DrawFilledRect( x - iGap - iSize - iOutline, y - iThickness/2 - iOutline, x - iGap + iOutline, y + (iThickness+1)/2 + iOutline );
+        // Outline for right
+        vgui::surface()->DrawFilledRect( x + iGap - iOutline, y - iThickness/2 - iOutline, x + iGap + iSize + iOutline, y + (iThickness+1)/2 + iOutline );
 
         if ( xhair_dot.GetBool() )
-            vgui::surface()->DrawFilledRect( x - iThickness/2, y - iThickness/2, x + (iThickness+1)/2, y + (iThickness+1)/2 );
-
-        return;
+            vgui::surface()->DrawFilledRect( x - iThickness/2 - iOutline, y - iThickness/2 - iOutline, x + (iThickness+1)/2 + iOutline, y + (iThickness+1)/2 + iOutline );
     }
 
+    vgui::surface()->DrawSetColor( r, g, b, a );
+    // Top (skip if T-style)
+    if ( !xhair_t_style.GetBool() )
+        vgui::surface()->DrawFilledRect( x - iThickness/2, y - iGap - iSize, x + (iThickness+1)/2, y - iGap );
+    // Bottom
+    vgui::surface()->DrawFilledRect( x - iThickness/2, y + iGap, x + (iThickness+1)/2, y + iGap + iSize );
+    // Left
+    vgui::surface()->DrawFilledRect( x - iGap - iSize, y - iThickness/2, x - iGap, y + (iThickness+1)/2 );
+    // Right
+    vgui::surface()->DrawFilledRect( x + iGap, y - iThickness/2, x + iGap + iSize, y + (iThickness+1)/2 );
+
+    if ( xhair_dot.GetBool() )
+        vgui::surface()->DrawFilledRect( x - iThickness/2, y - iThickness/2, x + (iThickness+1)/2, y + (iThickness+1)/2 );
+
+    // ---- old CS:S crosshair (removed, always using custom crosshair now) ----
+    if ( false )
+    {
     float fHalfFov = DEG2RAD(pPlayer->GetFOV()) * 0.5f;
 
     int iCrosshairDistance;
@@ -1314,6 +1290,7 @@ void CWeaponCSBase::DrawCrosshair()
             DrawCrosshairRect( x0, y0, x1, y1, bAdditive );
         }
     }
+    } // end if (false) — old CS:S crosshair
 
 #if ALLOW_WEAPON_SPREAD_DISPLAY
     // show accuracy brackets

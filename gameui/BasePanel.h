@@ -228,7 +228,6 @@ public:
         void OnOpenBenchmarkDialog();
         void OnOpenOptionsDialog();
         void OnOpenOptionsDialog_Xbox();
-        void OnOpenClientModMenuWindow();
         void OnOpenLoadCommentaryDialog();
         void OpenLoadSingleplayerCommentaryDialog();
         void OnOpenAchievementsDialog();
@@ -374,7 +373,7 @@ private:
         vgui::DHANDLE<vgui::Frame> m_hLoadGameDialog_Xbox;
         vgui::DHANDLE<vgui::Frame> m_hSaveGameDialog;
         vgui::DHANDLE<vgui::Frame> m_hSaveGameDialog_Xbox;
-        vgui::DHANDLE<vgui::PropertyDialog> m_hOptionsDialog;
+        vgui::DHANDLE<vgui::Frame> m_hOptionsDialog;
         vgui::DHANDLE<vgui::Frame> m_hOptionsDialog_Xbox;
         vgui::DHANDLE<vgui::Frame> m_hCreateMultiplayerGameDialog;
         //vgui::DHANDLE<vgui::Frame> m_hDemoPlayerDialog;
@@ -383,7 +382,6 @@ private:
         vgui::DHANDLE<vgui::Frame> m_hBenchmarkDialog;
         vgui::DHANDLE<vgui::Frame> m_hLoadCommentaryDialog;
         vgui::DHANDLE<vgui::Frame> m_hAchievementsDialog;
-        vgui::DHANDLE<vgui::PropertyDialog> m_hClientModMenuWindow;
 
         // Xbox 360
         vgui::DHANDLE<vgui::Frame> m_hMatchmakingBasePanel;

@@ -86,15 +86,6 @@ private:
 
 CrosshairImagePanelMod::CrosshairImagePanelMod( Panel *parent, const char *name, ClientModCrosshairMenu* pOptionsPanel ) : ImagePanel( parent, name )
 {
-	    Button *cancel = new Button( this, "Cancel", "#GameUI_Cancel" );
-        cancel->SetCommand( "Close" );
-
-        Button *ok = new Button( this, "OK", "#GameUI_OK" );
-        ok->SetCommand( "Ok" );
-
-        Button *apply = new Button( this, "Apply", "#GameUI_Apply" );
-        apply->SetCommand( "Apply" );
-        
 	m_pOptionsPanel = pOptionsPanel;
 	
 	m_pCrosshairStyle = new CLabeledCommandComboBox( m_pOptionsPanel, "CrosshairStyle" );
@@ -217,7 +208,7 @@ void CrosshairImagePanelMod::Paint()
 
 	int iBarSize = RoundFloatToInt( m_pCrosshairSize->GetSliderValue() * screenTall / 480.0f );
 	int iBarThickness = max( 1, RoundFloatToInt( m_pCrosshairThickness->GetSliderValue() * (float)screenTall / 480.0f ) );
-	int iBarGap = m_pCrosshairGap->GetSliderValue() + 4;
+	int iBarGap = m_pCrosshairGap->GetSliderValue();
 
 	int iInnerLeft = centerX - iBarGap - iBarThickness / 2;
 	int iInnerRight = iInnerLeft + 2 * iBarGap + iBarThickness;

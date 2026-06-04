@@ -17,15 +17,6 @@ using namespace vgui;
 
 ClientModGuiMenu::ClientModGuiMenu( vgui::Panel *parent ) : vgui::PropertyPage( parent, "ClientModGuiMenu" )
 {
-        Button *cancel = new Button( this, "Cancel", "#GameUI_Cancel" );
-        cancel->SetCommand( "Close" );
-
-        Button *ok = new Button( this, "OK", "#GameUI_OK" );
-        ok->SetCommand( "Ok" );
-
-        Button *apply = new Button( this, "Apply", "#GameUI_Apply" );
-        apply->SetCommand( "Apply" );
-        
         m_pHudStyle = new CLabeledCommandComboBox( this, "HudHealthArmorStyleComboBox" );
         m_pHudStyle->AddItem( "Default", "hud_healtharmor_style 0" );
         m_pHudStyle->AddItem( "Simple", "hud_healtharmor_style 1" );

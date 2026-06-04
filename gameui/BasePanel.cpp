@@ -54,7 +54,6 @@ using namespace vgui;
 #include "LoadGameDialog.h"
 #include "SaveGameDialog.h"
 #include "OptionsDialog.h"
-#include "ModMenu/ClientModMenuWindow.h"
 #include "CreateMultiplayerGameDialog.h"
 #include "ChangeGameDialog.h"
 #include "BackgroundMenuButton.h"
@@ -111,7 +110,7 @@ extern const char *COM_GetModDirectory( void );
 extern ConVar x360_audio_english;
 extern bool bSteamCommunityFriendsVersion;
 
-static vgui::DHANDLE<vgui::PropertyDialog> g_hOptionsDialog;
+static vgui::DHANDLE<vgui::Frame> g_hOptionsDialog;
 
 //-----------------------------------------------------------------------------
 // Purpose: singleton accessor
@@ -2150,10 +2149,6 @@ void CBasePanel::RunMenuCommand(const char *command)
     // HPE_END
     //=============================================================================
 
-        else if ( !Q_stricmp( command, "OpenClientModMenuWindow" ) )
-        {
-                OnOpenClientModMenuWindow();
-        }
         else if ( !Q_stricmp( command, "AchievementsDialogClosing" ) )
         {
                 if ( IsX360() )
@@ -3221,28 +3216,16 @@ void CBasePanel::OnOpenOptionsDialog_Xbox()
         m_hOptionsDialog_Xbox->Activate();
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: Opens ClientMod Menu Window
-//-----------------------------------------------------------------------------
-void CBasePanel::OnOpenClientModMenuWindow()
-{
-        if ( !m_hClientModMenuWindow.Get() )
-        {
-                m_hClientModMenuWindow = new ClientModMenuWindow( this );
-                PositionDialog( m_hClientModMenuWindow );
-        }
-
-        m_hClientModMenuWindow->Activate();
-}
 
 //-----------------------------------------------------------------------------
 // Purpose: forces any changed options dialog settings to be applied immediately, if it's open
 //-----------------------------------------------------------------------------
 void CBasePanel::ApplyOptionsDialogSettings()
 {
-        if (m_hOptionsDialog.Get())
+        COptionsDialog *pOptionsDialog = dynamic_cast<COptionsDialog*>( m_hOptionsDialog.Get() );
+        if ( pOptionsDialog )
         {
-                m_hOptionsDialog->ApplyChanges();
+                pOptionsDialog->ApplyChanges();
         }
 }
 
@@ -4973,7 +4956,7 @@ static void RefreshOptionsDialog( const CCommand &args )
                         COptionsDialog *pOptionsDialog = dynamic_cast<COptionsDialog*>( g_hOptionsDialog.Get() );
                         if ( pOptionsDialog )
                         {
-                                pOptionsDialog->GetPropertySheet()->SetActivePage( pOptionsDialog->GetOptionsSubMultiplayer() );
+                                pOptionsDialog->NavigateToMultiplayer();
                         }
                 }
         }

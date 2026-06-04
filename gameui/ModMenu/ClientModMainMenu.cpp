@@ -37,15 +37,6 @@ using namespace vgui;
 //-----------------------------------------------------------------------------
 ClientModMainMenu::ClientModMainMenu( vgui::Panel *parent ): vgui::PropertyPage( parent, "ClientModMainMenu" )
 {
-        Button *cancel = new Button( this, "Cancel", "#GameUI_Cancel" );
-        cancel->SetCommand( "Close" );
-
-        Button *ok = new Button( this, "OK", "#GameUI_OK" );
-        ok->SetCommand( "Ok" );
-
-        Button *apply = new Button( this, "Apply", "#GameUI_Apply" );
-        apply->SetCommand( "Apply" );
-
         // Left column - Viewmodel Offset sliders (X, Y, Z)
         m_pViewmodelOffsetX = new CCvarSlider( this, "ViewmodelOffsetXSlider", "", -5.0f, 5.0f, "viewmodel_offset_x" );
         m_pViewmodelOffsetXLabel = new Label( this, "ViewmodelOffsetXLabel", "" );
