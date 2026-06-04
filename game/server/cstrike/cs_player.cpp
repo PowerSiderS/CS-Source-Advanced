@@ -8389,7 +8389,12 @@ void CCSPlayer::LookAtHeldWeapon( void )
                 nSequence = pViewModel->SelectWeightedSequence( ACT_VM_IDLE_LOWERED );
 
                 if ( nSequence == ACT_INVALID )
-                        nSequence = pViewModel->LookupSequence( "lookat01" );
+                {
+                        if ( pActiveWeapon->IsSilenced() )
+                                nSequence = pViewModel->LookupSequence( "lookat01_silenced" );
+                        if ( nSequence == ACT_INVALID )
+                                nSequence = pViewModel->LookupSequence( "lookat01" );
+                }
 
                 if ( nSequence == ACT_INVALID )
                         nSequence = pViewModel->LookupSequence( "inspect" );
