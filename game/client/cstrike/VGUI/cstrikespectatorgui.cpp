@@ -1563,10 +1563,12 @@ void CCSMapOverview::DrawMapPlayers()
 		float status = -1;
 		const char *name = NULL;
 
-		if ( m_bShowNames && CanPlayerNameBeSeen( player ) )
+		bool isTeammate = localPlayer && ( localPlayer->GetTeamNumber() <= TEAM_SPECTATOR || localPlayer->GetTeamNumber() == player->team );
+		
+        if ( m_bShowNames && CanPlayerNameBeSeen( player ) && isTeammate )
 			name = player->name;
 
-		if ( m_bShowHealth && CanPlayerHealthBeSeen( player ) )
+		if ( m_bShowHealth && CanPlayerHealthBeSeen( player ) && isTeammate )
 			status = player->health/100.0f;
 
 		// Now draw them
@@ -1670,6 +1672,8 @@ void CCSMapOverview::DrawMapPlayerTrails()
 
                 // Don't draw a trail behind the local player
                 if ( localPlayer && GetPlayerByUserID( localPlayer->GetUserID() ) == player )
+                        continue;
+                if ( localPlayer && localPlayer->GetTeamNumber() > TEAM_SPECTATOR && player->team != localPlayer->GetTeamNumber() )
                         continue;
 
                 player->trail[0] = WorldToMap( player->position );
