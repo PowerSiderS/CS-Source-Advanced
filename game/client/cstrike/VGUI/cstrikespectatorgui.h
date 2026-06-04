@@ -196,6 +196,7 @@ protected:
 	virtual void	DrawCamera();
 	virtual void	DrawMapTexture();
 	virtual void	DrawMapPlayers();
+	virtual void    DrawMapPlayerTrails();
 	void			DrawHostages();
 	void			DrawBomb();
 	void			DrawGoalIcons();

@@ -35,10 +35,13 @@ extern ConVar overview_tracks;
 extern ConVar overview_locked;
 extern ConVar overview_alpha;
 extern ConVar cl_radar_square_with_scoreboard;
+
 ConVar cl_radaralpha( "cl_radaralpha", "255", FCVAR_CLIENTDLL | FCVAR_ARCHIVE, NULL, true, 0, true, 255 );
 ConVar cl_radar_rotate( "cl_radar_rotate", "1", FCVAR_ARCHIVE, "1" );
-
 ConVar cl_radar_scale( "cl_radar_scale", "2.0", FCVAR_ARCHIVE, "Sets the radar scale. Valid values are 1.0 to 3.0", true, 1.0f, true, 3.0f );
+ConVar hud_radar_display_name( "hud_radar_display_name", "0", FCVAR_ARCHIVE, "Show teammate names on the alive-player radar" );
+ConVar hud_radar_display_healthbar( "hud_radar_display_healthbar", "0", FCVAR_ARCHIVE, "Show teammate health bars on the alive-player radar" );
+ConVar hud_radar_display_line( "hud_radar_display_line", "0", FCVAR_ARCHIVE, "Show teammate movement trails on the alive-player radar" );
 
 void PreferredOverviewModeChanged( IConVar *pConVar, const char *oldString, float flOldValue )
 {
@@ -548,7 +551,17 @@ void CCSMapOverview::Update( void )
 	}
 
 	BaseClass::Update();
-
+	
+	if ( GetMode() == MAP_MODE_RADAR )
+    {
+                if ( hud_radar_display_name.GetBool() )
+                        m_bShowNames = true;
+                if ( hud_radar_display_healthbar.GetBool() )
+                        m_bShowHealth = true;
+                if ( hud_radar_display_line.GetBool() )
+                        m_fTrailUpdateInterval = 1.0f;
+    }
+    
 	if ( GetSpectatorMode() == OBS_MODE_CHASE )
 	{
 		// Follow the local player in chase cam, so the map rotates using the local player's angles
@@ -1617,6 +1630,8 @@ void CCSMapOverview::DrawMapPlayers()
 			{
 				sizeForPlayer *= 4.0f; // The self icon is really big since it has a camera view cone attached.
 				angleForPlayer = player->angle[YAW];// And, the self icon now rotates, natch.
+				name   = NULL;
+                status = -1;
 			}
 
 			int offscreenIcon = m_TeamIconsOffscreen[GetIconNumberFromTeamNumber(player->team)];
@@ -1631,6 +1646,59 @@ void CCSMapOverview::DrawMapPlayers()
 	}
 
 	DrawBomb();// After players so it can draw on top
+}
+
+void CCSMapOverview::DrawMapPlayerTrails()
+{
+        if ( m_fTrailUpdateInterval <= 0 )
+                return;
+
+        CBasePlayer *localPlayer = C_BasePlayer::GetLocalPlayer();
+
+        // Circular clip boundary for the radar panel
+        float cx     = GetWide() * 0.5f;
+        float cy     = GetTall() * 0.5f;
+        float radius = MIN( cx, cy ) - GetBorderSize();
+        float radiusSq = radius * radius;
+
+        for ( int i = 0; i < MAX_PLAYERS; i++ )
+        {
+                MapPlayer_t *player = &m_Players[i];
+
+                if ( !CanPlayerBeSeen( player ) )
+                        continue;
+
+                // Don't draw a trail behind the local player
+                if ( localPlayer && GetPlayerByUserID( localPlayer->GetUserID() ) == player )
+                        continue;
+
+                player->trail[0] = WorldToMap( player->position );
+
+                for ( int iTrail = 0; iTrail < (MAX_TRAIL_LENGTH - 1); iTrail++ )
+                {
+                        if ( player->trail[iTrail + 1].x == 0 && player->trail[iTrail + 1].y == 0 )
+                                break;
+
+                        Vector2D pos1 = MapToPanel( player->trail[iTrail] );
+                        Vector2D pos2 = MapToPanel( player->trail[iTrail + 1] );
+
+                        // Clip to circle — if either endpoint is outside, stop drawing older points
+                        float d1x = pos1.x - cx, d1y = pos1.y - cy;
+                        float d2x = pos2.x - cx, d2y = pos2.y - cy;
+                        if ( (d1x * d1x + d1y * d1y) > radiusSq ||
+                             (d2x * d2x + d2y * d2y) > radiusSq )
+                                break;
+
+                        // Skip teleport jumps
+                        Vector2D dist = pos1 - pos2;
+                        if ( dist.LengthSqr() >= (128 * 128) )
+                                continue;
+
+                        int intensity = (int)( 255 - 255.0f * iTrail / MAX_TRAIL_LENGTH );
+                        surface()->DrawSetColor( player->color[0], player->color[1], player->color[2], intensity );
+                        surface()->DrawLine( (int)pos1.x, (int)pos1.y, (int)pos2.x, (int)pos2.y );
+                }
+        }
 }
 
 void CCSMapOverview::DrawHostages()
