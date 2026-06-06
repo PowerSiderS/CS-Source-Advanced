@@ -392,6 +392,31 @@ void CGameUI::PlayGameStartupSound()
 	if ( CommandLine()->FindParm( "-nostartupsound" ) )
 		return;
 
+	// Check if the player has a musicbox kit selected.
+	{
+		ConVarRef cl_musicbox( "cl_musicbox" );
+		int nKitIndex = cl_musicbox.IsValid() ? cl_musicbox.GetInt() : 0;
+		if ( nKitIndex > 0 && nKitIndex < (int)ARRAYSIZE( s_MusicboxKitNames ) )
+		{
+			const char *pKitFolder = s_MusicboxKitNames[ nKitIndex ];
+			if ( pKitFolder && pKitFolder[0] )
+			{
+				char szPath[256];
+				Q_snprintf( szPath, sizeof( szPath ), "sound/%s/gamestartup.mp3", pKitFolder );
+				Q_FixSlashes( szPath );
+
+				if ( g_pFullFileSystem->FileExists( szPath, "MOD" ) )
+				{
+					// Play via "play *#<path>" so it streams at snd_musicvolume.
+					char szCmd[280];
+					Q_snprintf( szCmd, sizeof( szCmd ), "play *#%s", szPath );
+					engine->ClientCmd_Unrestricted( szCmd );
+					return;
+				}
+			}
+		}
+	}
+
 	FileFindHandle_t fh;
 
 	CUtlVector<char *> fileNames;

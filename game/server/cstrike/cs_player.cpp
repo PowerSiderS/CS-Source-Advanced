@@ -115,6 +115,17 @@ static void SvNoMVPChangeCallback( IConVar *pConVar, const char *pOldValue, floa
         }
 }
 ConVar sv_nomvp( "sv_nomvp", "0", 0, "Disable MVP awards.", SvNoMVPChangeCallback );
+
+static const char *ResolveMusicboxKit( int nIndex )
+{
+        if ( nIndex <= 0 )
+                return "";
+
+        static char s_szKitIndex[16];
+        Q_snprintf( s_szKitIndex, sizeof(s_szKitIndex), "%d", nIndex );
+        return s_szKitIndex;
+}
+
 ConVar sv_disablefreezecam( "sv_disablefreezecam", "0", FCVAR_REPLICATED, "Turn on/off freezecam on server" );
 ConVar sv_nowinpanel( "sv_nowinpanel", "0", FCVAR_REPLICATED, "Turn on/off win panel on server" );
 ConVar sv_mvp_music( "sv_mvp_music", "1", 0, "Enable/disable MVP music on this server (0 = off, 1 = on)." );
@@ -950,6 +961,14 @@ void CCSPlayer::Spawn()
             SetClanTag( szClanTag );
         }
         
+        // Read cl_musicbox (integer kit index) from the client's USERINFO and resolve
+        {
+                const char *pMusicboxVal = engine->GetClientConVarValue( engine->IndexOfEdict( edict() ), "cl_musicbox" );
+                int nKitIndex = pMusicboxVal ? atoi( pMusicboxVal ) : 0;
+                const char *pKitName = ResolveMusicboxKit( nKitIndex );
+                SetMusicboxName( pKitName );
+        }
+
         // Get avatar CRC from custom files slot 2 (uploaded like sprays via sv_allowupload)
         // This is automatically handled by the engine's custom file upload system
         player_info_t pi;
@@ -8274,39 +8293,6 @@ int CCSPlayer::GetNumMVPs()
 void CCSPlayer::SetMusicboxName( const char *pName )
 {
         Q_strncpy( m_szMusicboxName.GetForModify(), pName, 64 );
-}
-
-//-----------------------------------------------------------------------------
-// ConCommand: musicbox <name>
-// Players set their personal sound folder name (e.g. "dashstar" maps to
-// sound/dashstar/gamestartup.mp3 and sound/dashstar/mvp_win.mp3)
-//-----------------------------------------------------------------------------
-CON_COMMAND_F( musicbox, "Set your personal music box folder name.", FCVAR_CLIENTCMD_CAN_EXECUTE )
-{
-        CCSPlayer *pPlayer = ToCSPlayer( UTIL_GetCommandClient() );
-        if ( !pPlayer )
-                return;
-
-        if ( args.ArgC() < 2 )
-        {
-                ClientPrint( pPlayer, HUD_PRINTCONSOLE, "Usage: musicbox <foldername>\n" );
-                return;
-        }
-
-        const char *pName = args[1];
-
-        // Sanitize: only allow alphanumeric, underscore, and hyphen to prevent path traversal
-        for ( const char *p = pName; *p; p++ )
-        {
-                if ( !V_isalnum( *p ) && *p != '_' && *p != '-' )
-                {
-                        ClientPrint( pPlayer, HUD_PRINTCONSOLE, "musicbox: Invalid folder name. Use only letters, numbers, underscores, and hyphens.\n" );
-                        return;
-                }
-        }
-
-        pPlayer->SetMusicboxName( pName );
-        ClientPrint( pPlayer, HUD_PRINTCONSOLE, UTIL_VarArgs( "Musicbox set to: %s\n", pName ) );
 }
 
 //=============================================================================
