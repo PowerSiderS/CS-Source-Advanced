@@ -73,7 +73,7 @@ def build(bld):
 		'ModMenu/ClientModMainMenu.cpp',
 		'ModMenu/ClientModCrosshairMenu.cpp',
 		'ModMenu/ClientModGuiMenu.cpp',
-		'ModMenu/ClientModMenuWindow.cpp',
+		'ModMenu/ClientModGyroMenu.cpp',
 		'OptionsDialog_Xbox.cpp',
 		'ControllerDialog.cpp',
 		'matchmaking/achievementsdialog.cpp',
