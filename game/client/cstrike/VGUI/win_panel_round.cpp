@@ -16,6 +16,7 @@
 #include <vgui/ISystem.h>
 #include "fmtstr.h"
 #include "cs_gamestats_shared.h"
+#include "engine/IEngineSound.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -23,6 +24,22 @@
 ConVar cl_round_win_fade_time( "cl_round_win_fade_time", "1.5", FCVAR_CLIENTDLL | FCVAR_ARCHIVE );
 
 DECLARE_HUDELEMENT_DEPTH( WinPanel_Round, 1 );	// 1 is foreground
+
+extern IEngineSound *enginesound;
+extern IVEngineClient *engine;
+
+// Tracks the sound script name of any currently playing musicbox sound so we can stop it.
+static char s_szCurrentMusicboxSound[128] = "";
+
+// Stop the currently playing musicbox sound (if any).
+static void StopMusicboxSound()
+{
+	if ( s_szCurrentMusicboxSound[0] )
+	{
+		s_szCurrentMusicboxSound[0] = '\0';
+	}
+}
+
 extern const wchar_t *LocalizeFindSafe( const char *pTokenName );
 
 
@@ -123,7 +140,8 @@ void WinPanel_Round::FireGameEvent( IGameEvent* event )
 	{
 	}		
 	else if ( Q_strcmp( "round_start", pEventName ) == 0 )
-	{		
+	{
+		StopMusicboxSound();
 		Hide();		
 	}
 	else if( Q_strcmp( "cs_win_panel_match", pEventName ) == 0 )
@@ -138,6 +156,30 @@ void WinPanel_Round::FireGameEvent( IGameEvent* event )
 		if( basePlayer )
 		{
 			SetMVP( ToCSPlayer( basePlayer ), mvpReason );
+		}
+
+		static ConVarRef cl_musicbox_mvp( "cl_musicbox_mvp" );
+		if ( cl_musicbox_mvp.IsValid() && cl_musicbox_mvp.GetInt() != 0 )
+		{
+			C_CSPlayer *pMVP = basePlayer ? ToCSPlayer( basePlayer ) : NULL;
+			if ( pMVP )
+			{
+				const char *pKitFolder = pMVP->GetMusicboxName();
+				if ( pKitFolder && pKitFolder[0] )
+				{
+					char szSoundPath[256];
+					Q_snprintf( szSoundPath, sizeof( szSoundPath ), "%s/mvp_win.mp3", pKitFolder );
+					Q_FixSlashes( szSoundPath );
+
+					// Store for tracking; play via "play *#sound/<folder>/mvp_win.mp3"
+					// The *# prefix makes the engine stream it at snd_musicvolume level.
+					char szCmd[280];
+					Q_snprintf( szCmd, sizeof( szCmd ), "play *#sound/%s", szSoundPath );
+					engine->ClientCmd_Unrestricted( szCmd );
+
+					Q_strncpy( s_szCurrentMusicboxSound, szSoundPath, sizeof( s_szCurrentMusicboxSound ) );
+				}
+			}
 		}
 	}
 	else if ( Q_strcmp( "cs_win_panel_round", pEventName ) == 0 )

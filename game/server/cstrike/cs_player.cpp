@@ -115,8 +115,20 @@ static void SvNoMVPChangeCallback( IConVar *pConVar, const char *pOldValue, floa
         }
 }
 ConVar sv_nomvp( "sv_nomvp", "0", 0, "Disable MVP awards.", SvNoMVPChangeCallback );
+
+static const char *ResolveMusicboxKit( int nIndex )
+{
+        if ( nIndex <= 0 )
+                return "";
+
+        static char s_szKitIndex[16];
+        Q_snprintf( s_szKitIndex, sizeof(s_szKitIndex), "%d", nIndex );
+        return s_szKitIndex;
+}
+
 ConVar sv_disablefreezecam( "sv_disablefreezecam", "0", FCVAR_REPLICATED, "Turn on/off freezecam on server" );
 ConVar sv_nowinpanel( "sv_nowinpanel", "0", FCVAR_REPLICATED, "Turn on/off win panel on server" );
+ConVar sv_mvp_music( "sv_mvp_music", "1", 0, "Enable/disable MVP music on this server (0 = off, 1 = on)." );
 //=============================================================================
 // HPE_END
 //=============================================================================
@@ -404,6 +416,7 @@ IMPLEMENT_SERVERCLASS_ST( CCSPlayer, DT_CSPlayer )
         SendPropFloat( SENDINFO( m_flProgressBarStartTime ), 0, SPROP_NOSCALE ),
         SendPropEHandle( SENDINFO( m_hRagdoll ) ),
         SendPropInt( SENDINFO( m_cycleLatch ), 4, SPROP_UNSIGNED ),
+        SendPropString( SENDINFO( m_szMusicboxName ) ),
 
 
 END_SEND_TABLE()
@@ -542,6 +555,7 @@ CCSPlayer::CCSPlayer()
         m_bKilledRescuer = false;
         m_maxGrenadeKills = 0;
         m_grenadeDamageTakenThisRound = 0;
+        m_szMusicboxName.GetForModify()[0] = '\0';
 
         m_vLastHitLocationObjectSpace = Vector(0,0,0);
 
@@ -947,6 +961,14 @@ void CCSPlayer::Spawn()
             SetClanTag( szClanTag );
         }
         
+        // Read cl_musicbox (integer kit index) from the client's USERINFO and resolve
+        {
+                const char *pMusicboxVal = engine->GetClientConVarValue( engine->IndexOfEdict( edict() ), "cl_musicbox" );
+                int nKitIndex = pMusicboxVal ? atoi( pMusicboxVal ) : 0;
+                const char *pKitName = ResolveMusicboxKit( nKitIndex );
+                SetMusicboxName( pKitName );
+        }
+
         // Get avatar CRC from custom files slot 2 (uploaded like sprays via sv_allowupload)
         // This is automatically handled by the engine's custom file upload system
         player_info_t pi;
@@ -8264,7 +8286,15 @@ int CCSPlayer::GetNumMVPs()
 {
         return m_iMVPs;
 }
- 
+
+//-----------------------------------------------------------------------------
+// Purpose: Sets the player's musicbox sound folder name (networked to all clients)
+//-----------------------------------------------------------------------------
+void CCSPlayer::SetMusicboxName( const char *pName )
+{
+        Q_strncpy( m_szMusicboxName.GetForModify(), pName, 64 );
+}
+
 //=============================================================================
 // HPE_END
 //=============================================================================
