@@ -34,6 +34,7 @@
 #include "ModMenu/ClientModMainMenu.h"
 #include "ModMenu/ClientModCrosshairMenu.h"
 #include "ModMenu/ClientModGuiMenu.h"
+#include "ModMenu/ClientModGyroMenu.h"
 
 using namespace vgui;
 
@@ -109,10 +110,11 @@ COptionsDialog::COptionsDialog( vgui::Panel *parent )
                 m_pSheetSounds->AddPage( new COptionsSubVoice( this ), "#GameUI_Voice" );
         m_pSheetSounds->SetTabWidth( 84 );
 
-        // ---- Video: ViewModel | Video ----
+        // ---- Video: ViewModel | Video | Gyroscope ----
         m_pSheetVideo->AddPage( new ClientModMainMenu( this ),  "#GameUI_ClientModMain" );
         m_pOptionsSubVideo = new COptionsSubVideo( this );
         m_pSheetVideo->AddPage( m_pOptionsSubVideo, "#GameUI_Video" );
+        m_pSheetVideo->AddPage( new ClientModGyroMenu( this ),  "#GameUI_ClientModGyro" );
         m_pSheetVideo->SetTabWidth( 84 );
 
         // ---- Gameplay: Crosshair | Multiplayer | GUI ----
