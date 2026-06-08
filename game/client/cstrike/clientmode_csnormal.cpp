@@ -114,44 +114,6 @@ ConVar cl_rebuy(
         "The order in which rebuy will attempt to repurchase items" );
 
 //-----------------------------------------------------------------------------
-// Musicbox kit list: index 0 = disabled, 1+ map to sound/<name>/ folder.
-// Add new kits here. The server reads cl_musicbox (int, USERINFO) and resolves
-// the folder name via this same array to populate m_szMusicboxName.
-const char *g_MusicboxKits[] =
-{
-        "",         // 0 - disabled
-        "gunman",   // 1
-        "dashstar",  // 2
-        "king2",    // 3
-};
-const int g_nMusicboxKitCount = ARRAYSIZE( g_MusicboxKits );
-
-// Returns the folder name for a given kit index, or "" if disabled/invalid.
-const char *MusicboxKitName( int nIndex )
-{
-        if ( nIndex <= 0 || nIndex >= g_nMusicboxKitCount )
-                return "";
-        return g_MusicboxKits[ nIndex ];
-}
-
-//-----------------------------------------------------------------------------
-// cl_musicbox: integer musicbox kit selector.
-//   0 = disabled, 1 = gunman, 2 = dashstar, 3 = king2, ...
-// USERINFO so the server reads it and sets m_szMusicboxName for all clients.
-ConVar cl_musicbox(
-        "cl_musicbox",
-        "0",
-        FCVAR_ARCHIVE | FCVAR_USERINFO,
-        "Musicbox kit: 0=disabled, 1=gunman, 2=dashstar, 3=king2" );
-
-//-----------------------------------------------------------------------------
-// cl_musicbox_mvp: 0 = don't play MVP music, 1 = play MVP's musicbox mvp_win.mp3
-ConVar cl_musicbox_mvp(
-        "cl_musicbox_mvp",
-        "1",
-        FCVAR_ARCHIVE,
-        "Enable (1) or disable (0) MVP musicbox sound when another player gets MVP" );
-//-----------------------------------------------------------------------------
 void SetBuyData( const ConVar &buyVar, const char *filename )
 {
         // if we already have autobuy data, don't bother re-parsing the text file
