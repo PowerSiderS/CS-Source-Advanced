@@ -205,9 +205,6 @@ public:
         bool HasC4() const;     // Is this player carrying a C4 bomb?
         bool IsVIP() const;     // Is this player the VIP?
 
-        // Musicbox: returns the player's sound folder name (may be empty if not set)
-        const char *GetMusicboxName() const { return m_szMusicboxName; }
-        
         virtual void SetAnimation( PLAYER_ANIM playerAnim );
 
 
@@ -391,8 +388,6 @@ private:
         int m_cycleLatch;                               // server periodically updates this to fix up our anims, here it is a 4 bit fixed point
         float m_serverIntendedCycle;    // server periodically updates this to fix up our anims, here it is the float we want, or -1 for no override
 
-        // Musicbox: per-player sound folder name sent from server
-        char m_szMusicboxName[64];
 
 
     //=============================================================================

@@ -128,7 +128,6 @@ static const char *ResolveMusicboxKit( int nIndex )
 
 ConVar sv_disablefreezecam( "sv_disablefreezecam", "0", FCVAR_REPLICATED, "Turn on/off freezecam on server" );
 ConVar sv_nowinpanel( "sv_nowinpanel", "0", FCVAR_REPLICATED, "Turn on/off win panel on server" );
-ConVar sv_mvp_music( "sv_mvp_music", "1", 0, "Enable/disable MVP music on this server (0 = off, 1 = on)." );
 //=============================================================================
 // HPE_END
 //=============================================================================
@@ -416,7 +415,6 @@ IMPLEMENT_SERVERCLASS_ST( CCSPlayer, DT_CSPlayer )
         SendPropFloat( SENDINFO( m_flProgressBarStartTime ), 0, SPROP_NOSCALE ),
         SendPropEHandle( SENDINFO( m_hRagdoll ) ),
         SendPropInt( SENDINFO( m_cycleLatch ), 4, SPROP_UNSIGNED ),
-        SendPropString( SENDINFO( m_szMusicboxName ) ),
 
 
 END_SEND_TABLE()
@@ -555,7 +553,6 @@ CCSPlayer::CCSPlayer()
         m_bKilledRescuer = false;
         m_maxGrenadeKills = 0;
         m_grenadeDamageTakenThisRound = 0;
-        m_szMusicboxName.GetForModify()[0] = '\0';
 
         m_vLastHitLocationObjectSpace = Vector(0,0,0);
 
@@ -8294,7 +8291,7 @@ void CCSPlayer::SetMusicboxName( const char *pName )
 {
         Q_strncpy( m_szMusicboxName.GetForModify(), pName, 64 );
 }
-
+ 
 //=============================================================================
 // HPE_END
 //=============================================================================

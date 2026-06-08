@@ -1037,12 +1037,7 @@ public:
         void    SetNumMVPs( int iNumMVP );
         void    IncrementNumMVPs( CSMvpReason_t mvpReason );
         int             GetNumMVPs();
-        
-        // Musicbox: per-player sound folder name networked to all clients
-        void    SetMusicboxName( const char *pName );
-        const char *GetMusicboxName() const { return m_szMusicboxName; }
-        CNetworkString( m_szMusicboxName, 64 );
-        
+         
         //=============================================================================
         // HPE_END
         //=============================================================================

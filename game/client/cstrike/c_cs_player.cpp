@@ -788,7 +788,6 @@ IMPLEMENT_CLIENTCLASS_DT( C_CSPlayer, DT_CSPlayer, CCSPlayer )
         RecvPropFloat( RECVINFO( m_flProgressBarStartTime ) ),
         RecvPropEHandle( RECVINFO( m_hRagdoll ) ),
         RecvPropInt( RECVINFO( m_cycleLatch ), 0, &C_CSPlayer::RecvProxy_CycleLatch ),
-        RecvPropString( RECVINFO( m_szMusicboxName ) ),
 
 END_RECV_TABLE()
 
@@ -828,7 +827,6 @@ C_CSPlayer::C_CSPlayer() :
 
         m_nInspectParity = 0;
         m_nLastInspectParity = 0;
-        m_szMusicboxName[0] = '\0';
 }
 
 
