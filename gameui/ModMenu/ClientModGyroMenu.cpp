@@ -38,6 +38,11 @@ ClientModGyroMenu::ClientModGyroMenu( vgui::Panel *parent )
                 "#GameUI_Gyro_YawSensitivity",
                 0.0f, 2.0f, "gyro_yaw_sensitivity" );
 
+        m_pGyroScopedSensitivity = new CCvarSlider(
+                this, "GyroScopedSensitivitySlider",
+                "#GameUI_Gyro_ScopedSensitivity",
+                0.0f, 2.0f, "gyro_scoped_sensitivity" );
+
         m_pGyroDeadzone = new CCvarSlider(
                 this, "GyroDeadzoneSlider",
                 "#GameUI_Gyro_Deadzone",
@@ -48,6 +53,7 @@ ClientModGyroMenu::ClientModGyroMenu( vgui::Panel *parent )
         m_pGyroReverseYaw->AddActionSignalTarget( this );
         m_pGyroPitchSensitivity->AddActionSignalTarget( this );
         m_pGyroYawSensitivity->AddActionSignalTarget( this );
+        m_pGyroScopedSensitivity->AddActionSignalTarget( this );
         m_pGyroDeadzone->AddActionSignalTarget( this );
 
         LoadControlSettings( "Resource/OptionGyroMenu.res" );
@@ -85,6 +91,7 @@ void ClientModGyroMenu::OnResetData()
         m_pGyroReverseYaw->Reset();
         m_pGyroPitchSensitivity->Reset();
         m_pGyroYawSensitivity->Reset();
+        m_pGyroScopedSensitivity->Reset();
         m_pGyroDeadzone->Reset();
 }
 
@@ -95,5 +102,6 @@ void ClientModGyroMenu::OnApplyChanges()
         m_pGyroReverseYaw->ApplyChanges();
         m_pGyroPitchSensitivity->ApplyChanges();
         m_pGyroYawSensitivity->ApplyChanges();
+        m_pGyroScopedSensitivity->ApplyChanges();
         m_pGyroDeadzone->ApplyChanges();
 }

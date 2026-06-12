@@ -33,6 +33,7 @@ private:
 
         CCvarSlider             *m_pGyroPitchSensitivity;
         CCvarSlider             *m_pGyroYawSensitivity;
+        CCvarSlider             *m_pGyroScopedSensitivity;
         CCvarSlider             *m_pGyroDeadzone;
 };
 
