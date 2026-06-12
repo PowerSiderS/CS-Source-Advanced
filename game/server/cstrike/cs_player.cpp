@@ -8265,47 +8265,6 @@ int CCSPlayer::GetNumMVPs()
         return m_iMVPs;
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: Sets the player's musicbox sound folder name (networked to all clients)
-//-----------------------------------------------------------------------------
-void CCSPlayer::SetMusicboxName( const char *pName )
-{
-        Q_strncpy( m_szMusicboxName.GetForModify(), pName, 64 );
-}
-
-//-----------------------------------------------------------------------------
-// ConCommand: musicbox <name>
-// Players set their personal sound folder name (e.g. "dashstar" maps to
-// sound/dashstar/gamestartup.mp3 and sound/dashstar/mvp_win.mp3)
-//-----------------------------------------------------------------------------
-CON_COMMAND_F( musicbox, "Set your personal music box folder name.", FCVAR_CLIENTCMD_CAN_EXECUTE )
-{
-        CCSPlayer *pPlayer = ToCSPlayer( UTIL_GetCommandClient() );
-        if ( !pPlayer )
-                return;
-
-        if ( args.ArgC() < 2 )
-        {
-                ClientPrint( pPlayer, HUD_PRINTCONSOLE, "Usage: musicbox <foldername>\n" );
-                return;
-        }
-
-        const char *pName = args[1];
-
-        // Sanitize: only allow alphanumeric, underscore, and hyphen to prevent path traversal
-        for ( const char *p = pName; *p; p++ )
-        {
-                if ( !V_isalnum( *p ) && *p != '_' && *p != '-' )
-                {
-                        ClientPrint( pPlayer, HUD_PRINTCONSOLE, "musicbox: Invalid folder name. Use only letters, numbers, underscores, and hyphens.\n" );
-                        return;
-                }
-        }
-
-        pPlayer->SetMusicboxName( pName );
-        ClientPrint( pPlayer, HUD_PRINTCONSOLE, UTIL_VarArgs( "Musicbox set to: %s\n", pName ) );
-}
-
 //=============================================================================
 // HPE_END
 //=============================================================================
