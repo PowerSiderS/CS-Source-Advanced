@@ -1,0 +1,101 @@
+#! /usr/bin/env python
+# encoding: utf-8
+# Theora video subsystem — waf build script
+# Requires: apt install libtheora-dev libogg-dev libvorbis-dev
+
+from waflib import Utils, Logs
+import os
+
+top = '.'
+PROJECT_NAME = 'video_theora'
+
+def options(opt):
+    return
+
+def configure(conf):
+    # Detect ogg / theora / vorbis via pkg-config.
+    # Falls back to /usr/include if pkg-config is missing.
+    incdirs = []
+    libs    = ['theora', 'ogg', 'vorbis']
+
+    for pkg in ['ogg', 'theora', 'vorbis']:
+        try:
+            conf.check_cfg(
+                package      = pkg,
+                args         = '--cflags --libs',
+                uselib_store = pkg.upper(),
+                mandatory    = False
+            )
+            # Pull out detected -I paths
+            key = 'INCLUDES_' + pkg.upper()
+            if key in conf.env:
+                incdirs += conf.env[key]
+        except Exception:
+            pass
+
+    # Deduplicate and store for build phase
+    seen = set()
+    unique = []
+    for d in incdirs:
+        if d not in seen:
+            seen.add(d)
+            unique.append(d)
+
+    # Always add /usr/include as fallback (standard location on Debian/RHEL)
+    if '/usr/include' not in seen:
+        unique.append('/usr/include')
+
+    conf.env.THEORA_INCLUDES = unique
+    Logs.pprint('CYAN', 'video_theora: include dirs: %s' % unique)
+
+def build(bld):
+    source = [
+        'theora_video.cpp',
+        'theora_material.cpp',
+        '../../public/tier0/memoverride.cpp',
+    ]
+
+    includes = [
+        '.',
+        '..',
+        '../../public',
+        '../../public/tier0',
+        '../../public/tier1',
+        '../../common',
+    ] + bld.env.INCLUDES_SDL2 + list(bld.env.THEORA_INCLUDES)
+
+    defines = []
+
+    # Internal workspace libs
+    use = ['tier0', 'tier1', 'tier2', 'vstdlib', 'SDL2']
+
+    # > theora → vorbis → ogg <
+    stlib = ['theora', 'vorbis', 'ogg']
+    lib   = []
+    
+    project_root = bld.path.find_dir('../..').abspath()
+    stlibpath = [
+        os.path.join(project_root, 'lib', bld.env.DEST_OS, bld.env.DEST_CPU)
+    ]
+    
+    lib = []
+    if bld.env.DEST_OS == 'android':
+        lib = ['OpenSLES']
+        
+    install_path = bld.env.LIBDIR
+
+    bld.shlib(
+        source       = source,
+        target       = PROJECT_NAME,
+        name         = PROJECT_NAME,
+        features     = 'c cxx',
+        includes     = includes,
+        defines      = defines,
+        stlib        = stlib,
+        stlibpath    = stlibpath,
+        use          = use,
+        lib          = lib,
+        install_path = install_path,
+        subsystem    = bld.env.MSVC_SUBSYSTEM,
+        idx          = bld.get_taskgen_count()
+    )
