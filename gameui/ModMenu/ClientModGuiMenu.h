@@ -35,6 +35,7 @@ private:
         CCvarToggleCheckButton*         m_pRadarRotate;
         CCvarSlider*                            m_pRadarScale;
         CCvarToggleCheckButton*         m_pXhairRainbow;
+        CCvarToggleCheckButton*         m_pXhairSniper;
         CCvarToggleCheckButton*         m_pEnableColorHud;
         CCvarToggleCheckButton*         m_pDisplayRadarName;
         CCvarToggleCheckButton*         m_pDisplayRadarHealth;

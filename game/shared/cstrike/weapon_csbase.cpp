@@ -1022,6 +1022,7 @@ static ConVar xhair_t_style( "xhair_t_style", "0", FCVAR_ARCHIVE, "T-style cross
 static ConVar xhair_gap_useweapon( "xhair_gap_useweapon", "0", FCVAR_ARCHIVE, "Use weapon accuracy for crosshair gap" );
 static ConVar xhair_usealpha( "xhair_usealpha", "1", FCVAR_ARCHIVE, "Use translucency for crosshair" );
 static ConVar xhair_style( "xhair_style", "0", FCVAR_ARCHIVE, "Crosshair style: 0=Default, 1=Default Static, 2=Classic, 3=Classic Dynamic, 4=Classic Static, 5=Old CS" );
+static ConVar xhair_sniper( "xhair_sniper", "0", FCVAR_ARCHIVE, "Show crosshair on AWP/Scout (sniper rifles) instead of hiding it." );
 
 //-----------------------------------------------------------------------------
 // Purpose: Draw the weapon's crosshair
@@ -1097,8 +1098,10 @@ void CWeaponCSBase::DrawCrosshair()
     if ( pPlayer->HasShield() && pPlayer->IsShieldDrawn() == true )
         return;
 
-    // no crosshair for sniper rifles
-    bool bCrosshairVisible = crosshair.GetBool() && GetCSWpnData().m_WeaponType != WEAPONTYPE_SNIPER_RIFLE;
+    // no crosshair for sniper rifles (unless xhair_sniper is enabled and player is not scoped)
+    bool bIsSniper = GetCSWpnData().m_WeaponType == WEAPONTYPE_SNIPER_RIFLE;
+    bool bCrosshairVisible = crosshair.GetBool() &&
+        ( !bIsSniper || ( xhair_sniper.GetBool() && !pPlayer->m_bIsScoped ) );
 
     if ( !bCrosshairVisible )
         return;

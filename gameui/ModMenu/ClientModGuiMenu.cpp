@@ -16,7 +16,7 @@
 using namespace vgui;
 
 ClientModGuiMenu::ClientModGuiMenu( vgui::Panel *parent ) : vgui::PropertyPage( parent, "ClientModGuiMenu" )
-{	
+{       
         m_pPlayerCountPos = new CLabeledCommandComboBox( this, "PlayerCountPosComboBox" );
         m_pPlayerCountPos->AddItem( "#GameUI_GUI_PlayerCount_Bottom", "hud_playercount_pos 0" );
         m_pPlayerCountPos->AddItem( "#GameUI_GUI_PlayerCount_Top", "hud_playercount_pos 1" );
@@ -26,6 +26,7 @@ ClientModGuiMenu::ClientModGuiMenu( vgui::Panel *parent ) : vgui::PropertyPage( 
         m_pRadarRotate = new CCvarToggleCheckButton( this, "RadarRotateCheckBox", "#GameUI_RadarRotate", "cl_radar_rotate" );
         m_pRadarScale = new CCvarSlider( this, "RadarScaleSlider", "#GameUI_RadarScale", 0.8f, 1.3f, "cl_radar_scale" );
         m_pXhairRainbow = new CCvarToggleCheckButton( this, "XhairRainbowCheckBox", "#GameUI_Crosshair_Rainbow", "xhair_rainbow" );
+        m_pXhairSniper = new CCvarToggleCheckButton( this, "XhairSniperCheckBox", "#GameUI_Crosshair_Sniper", "xhair_sniper" );
         m_pEnableColorHud = new CCvarToggleCheckButton( this, "HudColorCheckBox", "#GameUI_Hud_Color", "hud_colored" );
         m_pDisplayRadarName = new CCvarToggleCheckButton( this, "RadarDisplayNameCheckBox", "#GameUI_Radar_Name_Display", "hud_radar_display_name" );
         m_pDisplayRadarHealth = new CCvarToggleCheckButton( this, "RadarDisplayHealthCheckBox", "#GameUI_Radar_Health_Display", "hud_radar_display_healthbar" );
@@ -38,6 +39,7 @@ ClientModGuiMenu::ClientModGuiMenu( vgui::Panel *parent ) : vgui::PropertyPage( 
         m_pRadarRotate->AddActionSignalTarget( this );
         m_pRadarScale->AddActionSignalTarget( this );
         m_pXhairRainbow->AddActionSignalTarget( this );
+        m_pXhairSniper->AddActionSignalTarget( this );
         m_pEnableColorHud->AddActionSignalTarget( this );
         m_pDisplayRadarName->AddActionSignalTarget( this );
         m_pDisplayRadarHealth->AddActionSignalTarget( this );
@@ -81,6 +83,7 @@ void ClientModGuiMenu::OnResetData()
         m_pRadarRotate->Reset();
         m_pRadarScale->Reset();
         m_pXhairRainbow->Reset();
+        m_pXhairSniper->Reset();
         m_pEnableColorHud->Reset();
         m_pDisplayRadarName->Reset();
         m_pDisplayRadarHealth->Reset();
@@ -97,6 +100,7 @@ void ClientModGuiMenu::OnApplyChanges()
         m_pRadarRotate->ApplyChanges();
         m_pRadarScale->ApplyChanges();
         m_pXhairRainbow->ApplyChanges();
+        m_pXhairSniper->ApplyChanges();
         m_pEnableColorHud->ApplyChanges();
         m_pDisplayRadarName->ApplyChanges();
         m_pDisplayRadarHealth->ApplyChanges();
