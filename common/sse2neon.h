@@ -1942,7 +1942,7 @@ FORCE_INLINE __m128i _mm_loadu_si16(const void *p)
 FORCE_INLINE __m128i _mm_loadu_si64(const void *p)
 {
     return vreinterpretq_m128i_s64(
-        vcombine_s64(vld1_s64((const long *)(const void *)(p)), vdup_n_s64(0)));
+        vcombine_s64(vld1_s64((const int64_t *) p), vdup_n_s64(0)));
 }
 
 // Allocate aligned blocks of memory.
@@ -2784,7 +2784,7 @@ FORCE_INLINE void _mm_storeu_si64(void *p, __m128i a)
 // https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_stream_pi
 FORCE_INLINE void _mm_stream_pi(__m64 *p, __m64 a)
 {
-    vst1_s64((long *)(void *)(p), vreinterpret_s64_m64(a));
+    vst1_s64((int64_t *) p, vreinterpret_s64_m64(a));
 }
 
 // Store 128-bits (composed of 4 packed single-precision (32-bit) floating-
@@ -3111,8 +3111,8 @@ FORCE_INLINE __m128i _mm_and_si128(__m128i a, __m128i b)
 // elements in a and then AND with b, and store the results in dst.
 //
 //   FOR j := 0 to 1
-//           i := j*64
-//           dst[i+63:i] := ((NOT a[i+63:i]) AND b[i+63:i])
+// 	     i := j*64
+// 	     dst[i+63:i] := ((NOT a[i+63:i]) AND b[i+63:i])
 //   ENDFOR
 //
 // https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_andnot_pd
@@ -5940,7 +5940,7 @@ FORCE_INLINE void _mm_storeh_pd(double *mem_addr, __m128d a)
 // https://msdn.microsoft.com/en-us/library/hhwf428f%28v=vs.90%29.aspx
 FORCE_INLINE void _mm_storel_epi64(__m128i *a, __m128i b)
 {
-    vst1_u64((unsigned long *)(void *)(a), vget_low_u64(vreinterpretq_u64_m128i(b)));
+    vst1_u64((uint64_t *) a, vget_low_u64(vreinterpretq_u64_m128i(b)));
 }
 
 // Store the lower double-precision (64-bit) floating-point element from a into
@@ -6039,7 +6039,7 @@ FORCE_INLINE void _mm_stream_si32(int *p, int a)
 // https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_stream_si64
 FORCE_INLINE void _mm_stream_si64(__int64 *p, __int64 a)
 {
-    vst1_s64((long *)(void *)(p), vdup_n_s64((int64_t) a));
+    vst1_s64((int64_t *) p, vdup_n_s64((int64_t) a));
 }
 
 // Subtract packed 16-bit integers in b from packed 16-bit integers in a, and
