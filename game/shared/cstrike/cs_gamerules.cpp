@@ -370,6 +370,15 @@ ConVar cl_autohelp(
                 true, 60        // max value
                 );
 
+        ConVar mp_warmup(
+                "mp_warmup",
+                "0",
+                FCVAR_REPLICATED | FCVAR_NOTIFY,
+                "Warmup duration in seconds before the first round. 0 = disabled.",
+                true, 0,        // min value
+                true, 300       // max value
+                );
+
         ConVar mp_c4timer( 
                 "mp_c4timer", 
                 "45", 
@@ -616,6 +625,11 @@ ConVar cl_autohelp(
                 m_iHostagesRescued = 0;
                 m_iHostagesTouched = 0;
                 m_flNextHostageAnnouncement = 0.0f;
+
+                m_bInWarmup = false;
+                m_bWarmupDone = false;
+                m_flWarmupEndTime = 0.0f;
+                m_flNextWarmupHint = 0.0f;
 
         //=============================================================================
         // HPE_BEGIN
@@ -1266,74 +1280,74 @@ ConVar cl_autohelp(
         //-----------------------------------------------------------------------------
 CCSPlayer* CCSGameRules::CheckAndAwardAssists( CCSPlayer* pCSVictim, CCSPlayer* pKiller )
 {
-	if ( !pCSVictim )
-		return NULL;
+        if ( !pCSVictim )
+                return NULL;
 
-	CUtlLinkedList< CDamageRecord *, int >& victimDamageTakenList = pCSVictim->GetDamageList();
-	
-	// Helper struct to accumulate damage
-	struct AssisterInfo_t
-	{
-		CCSPlayer *pPlayer;
-		int iTotalDamage;
-	};
-	CUtlLinkedList<AssisterInfo_t, int> potentialAssisters;
+        CUtlLinkedList< CDamageRecord *, int >& victimDamageTakenList = pCSVictim->GetDamageList();
+        
+        // Helper struct to accumulate damage
+        struct AssisterInfo_t
+        {
+                CCSPlayer *pPlayer;
+                int iTotalDamage;
+        };
+        CUtlLinkedList<AssisterInfo_t, int> potentialAssisters;
 
-	FOR_EACH_LL( victimDamageTakenList, ii )
-	{
-		if ( victimDamageTakenList[ii]->GetPlayerRecipientPtr() == pCSVictim )
-		{
-			CCSPlayer* pAttackerPlayer = victimDamageTakenList[ii]->GetPlayerDamagerPtr();
-			if ( pAttackerPlayer )
-			{
-				if ( (pAttackerPlayer != pKiller) && (pAttackerPlayer != pCSVictim) )
-				{
-					int iDamage = victimDamageTakenList[ii]->GetDamage();
-					
-					// Check if we already have this attacker in our list and add damage
-					bool bFound = false;
-					FOR_EACH_LL( potentialAssisters, k )
-					{
-						if ( potentialAssisters[k].pPlayer == pAttackerPlayer )
-						{
-							potentialAssisters[k].iTotalDamage += iDamage;
-							bFound = true;
-							break;
-						}
-					}
-					
-					// If not found, add new entry
-					if ( !bFound )
-					{
-						AssisterInfo_t newAssist;
-						newAssist.pPlayer = pAttackerPlayer;
-						newAssist.iTotalDamage = iDamage;
-						potentialAssisters.AddToTail( newAssist );
-					}
-				}
-			}
-		}
-	}
+        FOR_EACH_LL( victimDamageTakenList, ii )
+        {
+                if ( victimDamageTakenList[ii]->GetPlayerRecipientPtr() == pCSVictim )
+                {
+                        CCSPlayer* pAttackerPlayer = victimDamageTakenList[ii]->GetPlayerDamagerPtr();
+                        if ( pAttackerPlayer )
+                        {
+                                if ( (pAttackerPlayer != pKiller) && (pAttackerPlayer != pCSVictim) )
+                                {
+                                        int iDamage = victimDamageTakenList[ii]->GetDamage();
+                                        
+                                        // Check if we already have this attacker in our list and add damage
+                                        bool bFound = false;
+                                        FOR_EACH_LL( potentialAssisters, k )
+                                        {
+                                                if ( potentialAssisters[k].pPlayer == pAttackerPlayer )
+                                                {
+                                                        potentialAssisters[k].iTotalDamage += iDamage;
+                                                        bFound = true;
+                                                        break;
+                                                }
+                                        }
+                                        
+                                        // If not found, add new entry
+                                        if ( !bFound )
+                                        {
+                                                AssisterInfo_t newAssist;
+                                                newAssist.pPlayer = pAttackerPlayer;
+                                                newAssist.iTotalDamage = iDamage;
+                                                potentialAssisters.AddToTail( newAssist );
+                                        }
+                                }
+                        }
+                }
+        }
 
-	CCSPlayer* maxDamagePlayer = NULL;
-	int maxDamage = 0;
+        CCSPlayer* maxDamagePlayer = NULL;
+        int maxDamage = 0;
 
-	// Find the player with the highest TOTAL damage
-	FOR_EACH_LL( potentialAssisters, k )
-	{
-		if ( potentialAssisters[k].iTotalDamage > maxDamage )
-		{
-			maxDamage = potentialAssisters[k].iTotalDamage;
-			maxDamagePlayer = potentialAssisters[k].pPlayer;
-		}
-	}
+        // Find the player with the highest TOTAL damage
+        FOR_EACH_LL( potentialAssisters, k )
+        {
+                if ( potentialAssisters[k].iTotalDamage > maxDamage )
+                {
+                        maxDamage = potentialAssisters[k].iTotalDamage;
+                        maxDamagePlayer = potentialAssisters[k].pPlayer;
+                }
+        }
 
-	if ( maxDamagePlayer && (maxDamage >= cs_AssistDamageThreshold.GetFloat()) )
-	{
-		return maxDamagePlayer;
-	}
+        if ( maxDamagePlayer && (maxDamage >= cs_AssistDamageThreshold.GetFloat()) )
+        {
+                return maxDamagePlayer;
+        }
 
-	return NULL;
+        return NULL;
 }
 
         //-----------------------------------------------------------------------------
@@ -1777,6 +1791,10 @@ CCSPlayer* CCSGameRules::CheckAndAwardAssists( CCSPlayer* pCSVictim, CCSPlayer* 
          */
         bool CCSGameRules::CheckWinConditions( void )
         {
+                // No round endings during warmup - players respawn freely
+                if ( m_bInWarmup )
+                        return false;
+
                 if ( mp_ignore_round_win_conditions.GetBool() )
                 {
                         return false;
@@ -2369,6 +2387,7 @@ CCSPlayer* CCSGameRules::CheckAndAwardAssists( CCSPlayer* pCSVictim, CCSPlayer* 
                         gpGlobals->curtime = 0.0f;
                 }
 
+                bool bWasCompleteReset = m_bCompleteReset;
                 int i;
 
                 m_iTotalRoundsPlayed++;
@@ -2674,15 +2693,31 @@ CCSPlayer* CCSGameRules::CheckAndAwardAssists( CCSPlayer* pCSVictim, CCSPlayer* 
                         {
                                 if (pPlayer->DoesPlayerGetRoundStartMoney())
                                 {
-                                        pPlayer->AddAccount( m_iAccountCT );
+                                        if ( bWasCompleteReset )
+                                        {
+                                                pPlayer->m_iAccount = 0;
+                                                pPlayer->AddAccount( GetStartMoney() );
+                                        }
+                                        else
+                                        {
+                                                pPlayer->AddAccount( m_iAccountCT );
+                                        }
                                 }
                         }
                         else if ( pPlayer->GetTeamNumber() == TEAM_TERRORIST )
                         {
-                                m_iNumEscapers++;       // Add another potential escaper to the mix!
+                                m_iNumEscapers++;
                                 if (pPlayer->DoesPlayerGetRoundStartMoney())
                                 {
-                                        pPlayer->AddAccount( m_iAccountTerrorist );
+                                        if ( bWasCompleteReset )
+                                        {
+                                                pPlayer->m_iAccount = 0;
+                                                pPlayer->AddAccount( GetStartMoney() );
+                                        }
+                                        else
+                                        {
+                                                pPlayer->AddAccount( m_iAccountTerrorist );
+                                        }
                                 }
                         }
 
@@ -2690,6 +2725,21 @@ CCSPlayer* CCSGameRules::CheckAndAwardAssists( CCSPlayer* pCSVictim, CCSPlayer* 
                         if ( (pPlayer->GetTeamNumber() == TEAM_CT) || (pPlayer->GetTeamNumber() == TEAM_TERRORIST) )
                         {
                                 pPlayer->AddSolidFlags( FSOLID_NOT_SOLID );
+                        }
+                }
+
+                // During warmup every player gets 16000$ (overrides the normal round-start amount).
+                // Use bWasCompleteReset + warmup cvar because m_bInWarmup is set later in this function.
+                if ( bWasCompleteReset && mp_warmup.GetInt() > 0 && !m_bWarmupDone )
+                {
+                        for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+                        {
+                                CCSPlayer *pPlayer = (CCSPlayer*)UTIL_PlayerByIndex( i );
+                                if ( pPlayer && (pPlayer->GetTeamNumber() == TEAM_CT || pPlayer->GetTeamNumber() == TEAM_TERRORIST) )
+                                {
+                                        pPlayer->m_iAccount = 16000;
+                                        pPlayer->m_iShouldHaveCash = 16000;
+                                }
                         }
                 }
         
@@ -2844,8 +2894,8 @@ CCSPlayer* CCSGameRules::CheckAndAwardAssists( CCSPlayer* pCSVictim, CCSPlayer* 
                         }
                 }
 
-                // Give C4 to the terrorists
-                if (m_bMapHasBombTarget == true )
+                // Give C4 to the terrorists (suppressed during warmup)
+                if ( m_bMapHasBombTarget == true && !(bWasCompleteReset && mp_warmup.GetInt() > 0 && !m_bWarmupDone) )
                         GiveC4();
 
                 // Reset game variables
@@ -2886,6 +2936,15 @@ CCSPlayer* CCSGameRules::CheckAndAwardAssists( CCSPlayer* pCSVictim, CCSPlayer* 
                 m_bTargetBombed = m_bBombDefused = false;
                 m_bCompleteReset = false;
                 m_flNextHostageAnnouncement = gpGlobals->curtime;
+
+                // Start warmup on fresh match start if enabled and not already done
+                if ( bWasCompleteReset && mp_warmup.GetInt() > 0 && !m_bWarmupDone )
+                {
+                        m_bInWarmup = true;
+                        m_flWarmupEndTime = gpGlobals->curtime + (float)mp_warmup.GetInt();
+                        m_flNextWarmupHint = 0.0f;
+                        m_bFreezePeriod = false;
+                }
 
                 m_iHostagesRemaining = g_Hostages.Count();
 
@@ -3044,11 +3103,31 @@ CCSPlayer* CCSGameRules::CheckAndAwardAssists( CCSPlayer* pCSVictim, CCSPlayer* 
 
                 
                 // Check for the end of the round.
-                if ( IsFreezePeriod() )
+                if ( m_bInWarmup )
+                {
+                        CheckWarmupExpired();
+                        
+                        for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+                        {
+                                CCSPlayer *pPlayer = (CCSPlayer*)UTIL_PlayerByIndex( i );
+                                if ( pPlayer && !pPlayer->IsAlive() )
+                                {
+                                        if ( pPlayer->GetTeamNumber() == TEAM_CT || pPlayer->GetTeamNumber() == TEAM_TERRORIST )
+                                        {
+                                                // Respect the 3-second respawn delay defined in FPlayerCanRespawn
+                                                if ( FPlayerCanRespawn( pPlayer ) )
+                                                {
+                                                        pPlayer->RoundRespawn();
+                                                }
+                                        }
+                                }
+                        }
+                }
+                else if ( IsFreezePeriod() )
                 {
                         CheckFreezePeriodExpired();
                 }
-                else 
+                else
                 {
                         CheckRoundTimeExpired();
                 }
@@ -3356,6 +3435,71 @@ CCSPlayer* CCSGameRules::CheckAndAwardAssists( CCSPlayer* pCSVictim, CCSPlayer* 
                         g_pReplay->SV_EndRecordingSession();
                 }
 #endif
+        }
+
+        //-----------------------------------------------------------------------------
+        // Purpose: Called every Think() tick while warmup is active.
+        //          Sends a countdown hint once per second and ends warmup when time is up.
+        //-----------------------------------------------------------------------------
+        void CCSGameRules::CheckWarmupExpired()
+        {
+                // Print countdown hint once per second - no per-frame work
+                if ( gpGlobals->curtime >= m_flNextWarmupHint )
+                {
+                        float flRemaining = m_flWarmupEndTime - gpGlobals->curtime;
+                        if ( flRemaining < 0.0f )
+                                flRemaining = 0.0f;
+
+                        int iMinutes = (int)flRemaining / 60;
+                        int iSeconds = (int)flRemaining % 60;
+
+                        char szTime[16];
+                        Q_snprintf( szTime, sizeof( szTime ), "%d:%02d", iMinutes, iSeconds );
+
+                        // Center print shows the countdown (same pattern as #Game_will_restart_in)
+                        UTIL_ClientPrintAll( HUD_PRINTCENTER, "#CStrike_Warmup", szTime );
+
+                        m_flNextWarmupHint = gpGlobals->curtime + 1.0f;
+                }
+
+                // Check if warmup has expired
+                if ( gpGlobals->curtime >= m_flWarmupEndTime )
+                {
+                        EndWarmup();
+                }
+        }
+
+        //-----------------------------------------------------------------------------
+        // Purpose: Ends the warmup period, resets all player money/weapons, and
+        //          triggers a full match restart so warmup stats don't carry over.
+        //-----------------------------------------------------------------------------
+        void CCSGameRules::EndWarmup()
+        {
+                m_bInWarmup = false;
+                m_bWarmupDone = true;
+                m_flWarmupEndTime = 0.0f;
+
+                // Notify all players
+                UTIL_ClientPrintAll( HUD_PRINTCENTER, "#CStrike_Warmup_End" );
+
+                // Strip all weapons from every active player so they start the real
+                // round completely fresh (money and kit reset by the CompleteReset below)
+                for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+                {
+                        CCSPlayer *pPlayer = (CCSPlayer*)UTIL_PlayerByIndex( i );
+                        if ( !pPlayer )
+                                continue;
+                        if ( pPlayer->GetTeamNumber() != TEAM_CT && pPlayer->GetTeamNumber() != TEAM_TERRORIST )
+                                continue;
+
+                        pPlayer->RemoveAllItems( true );
+                }
+
+                // Full match reset: clears scores, resets money to mp_startmoney,
+                // and restarts the round properly without re-triggering warmup
+                // (m_bWarmupDone prevents re-entry even though m_bCompleteReset is true)
+                m_bCompleteReset = true;
+                m_flRestartRoundTime = gpGlobals->curtime + 0.1f;
         }
 
         void CCSGameRules::GoToIntermission( void )
@@ -4113,6 +4257,20 @@ CCSPlayer* CCSGameRules::CheckAndAwardAssists( CCSPlayer* pCSVictim, CCSPlayer* 
                 CCSPlayer *pPlayer = ToCSPlayer( pBasePlayer );
                 if ( !pPlayer )
                         Error( "FPlayerCanRespawn: pPlayer=0" );
+
+                // During warmup, bypass the one-spawn-per-round limit so dead players respawn
+                if ( m_bInWarmup )
+                {
+                        if ( pPlayer->GetTeamNumber() != TEAM_CT && pPlayer->GetTeamNumber() != TEAM_TERRORIST )
+                                return false;
+                        
+                        if ( gpGlobals->curtime < (pPlayer->GetDeathTime() + 3.0f) )
+                        {
+                            return false;
+                        }
+                        
+                        return true;
+                }
 
                 // Player cannot respawn twice in a round
                 if ( pPlayer->m_iNumSpawns > 0 && m_bFirstConnected )

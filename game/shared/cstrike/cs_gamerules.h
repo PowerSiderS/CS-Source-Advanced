@@ -255,6 +255,9 @@ public:
 
         void CheckFreezePeriodExpired();
         void CheckRoundTimeExpired();
+        void CheckWarmupExpired();
+        void EndWarmup();
+        bool IsWarmupPeriod() const { return m_bInWarmup; }
 
         // check if the scenario has been won/lost
         // return true if the scenario is over, false if the scenario is still in progress
@@ -395,6 +398,12 @@ public:
 
         int m_iLoserBonus;                      // SupraFiend: the amount of money the losing team gets. This scales up as they lose more rounds in a row
         float m_tmNextPeriodicThink;
+
+        // Warmup state (server-only, not networked)
+        bool  m_bInWarmup;
+        bool  m_bWarmupDone;
+        float m_flWarmupEndTime;
+        float m_flNextWarmupHint;
 
 
         // HOSTAGE RESCUE VARIABLES
