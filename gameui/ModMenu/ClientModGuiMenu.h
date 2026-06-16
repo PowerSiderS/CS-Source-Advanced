@@ -10,6 +10,7 @@
 class CLabeledCommandComboBox;
 class CCvarToggleCheckButton;
 class CCvarSlider;
+class CColorPickerButton;
 
 class ClientModGuiMenu : public vgui::PropertyPage
 {
@@ -27,7 +28,15 @@ protected:
         MESSAGE_FUNC_PARAMS( OnSliderMoved, "SliderMoved", data );
         MESSAGE_FUNC( OnCheckButtonChecked, "CheckButtonChecked" );
 
+        // Color picker messages forwarded by CColorPickerButton
+        MESSAGE_FUNC_PARAMS( OnHudColorPicked,   "ColorPickerPicked",  data );
+        MESSAGE_FUNC_PARAMS( OnHudColorPreview,  "ColorPickerPreview", data );
+        MESSAGE_FUNC_PARAMS( OnHudColorCancel,   "ColorPickerCancel",  data );
+
 private:
+        
+        void ApplyHudColor( int r, int g, int b );
+
         CLabeledCommandComboBox*        m_pPlayerCountPos;
 
         CCvarToggleCheckButton*         m_pRadarSquare;
@@ -37,6 +46,7 @@ private:
         CCvarToggleCheckButton*         m_pXhairRainbow;
         CCvarToggleCheckButton*         m_pXhairSniper;
         CCvarToggleCheckButton*         m_pEnableColorHud;
+        CColorPickerButton*                     m_pHudColorButton;
         CCvarToggleCheckButton*         m_pDisplayRadarName;
         CCvarToggleCheckButton*         m_pDisplayRadarHealth;
         CCvarToggleCheckButton*         m_pDisplayRadarLine;
