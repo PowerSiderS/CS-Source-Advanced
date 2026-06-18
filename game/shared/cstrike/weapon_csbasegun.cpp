@@ -152,7 +152,8 @@ bool CWeaponCSBaseGun::CSBaseGunFire( float flCycleTime, CSWeaponMode weaponMode
 		CBaseEntity::GetPredictionRandomSeed() & 255,
 		GetInaccuracy(),
 		GetSpread(), 
-		flCurAttack );
+		flCurAttack,
+		2 );	// iTracerFreq: every 2nd bullet (matching hl2mp)
 
 	DoFireEffects();
 

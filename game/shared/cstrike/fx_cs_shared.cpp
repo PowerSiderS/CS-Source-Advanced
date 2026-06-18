@@ -114,7 +114,8 @@ void FX_FireBullets(
 	int iSeed,
 	float fInaccuracy,
 	float fSpread,
-	float flSoundTime
+	float flSoundTime,
+	int iTracerFreq
 	)
 {
 	bool bDoEffects = true;
@@ -194,7 +195,8 @@ void FX_FireBullets(
 		iMode,
 		iSeed,
 		fInaccuracy,
-		fSpread
+		fSpread,
+		iTracerFreq
 		);
 
 
@@ -284,8 +286,61 @@ void FX_FireBullets(
 		y1[iBullet] = fRadius1 * sinf(fTheta1);
 	}
 
+	int iTracerCount = 0;
 	for ( int iBullet=0; iBullet < pWeaponInfo->m_iBullets; iBullet++ )
 	{
+		// Draw tracer effects on the client (like hl2mp's m_iTracerFreq system)
+		if ( bDoEffects && iTracerFreq != 0 && ( iTracerCount++ % iTracerFreq ) == 0 )
+		{
+			Vector vecDirShooting, vecRight, vecUp;
+			AngleVectors( vAngles, &vecDirShooting, &vecRight, &vecUp );
+
+			float xSpread = x0 + x1[iBullet];
+			float ySpread = y0 + y1[iBullet];
+			Vector vecDir = vecDirShooting + xSpread * vecRight + ySpread * vecUp;
+			VectorNormalize( vecDir );
+
+			Vector vecEnd = vOrigin + vecDir * flRange;
+
+			trace_t tracerTr;
+			UTIL_TraceLine( vOrigin, vecEnd, MASK_SHOT, pPlayer, COLLISION_GROUP_NONE, &tracerTr );
+
+			// Get tracer type from ammo definition
+			int iTracerType = GetAmmoDef()->TracerType( iAmmoType );
+			if ( iTracerType != TRACER_NONE )
+			{
+				const char *pszTracerName = NULL;
+				CBaseCombatWeapon *pWeapon = pPlayer->GetActiveWeapon();
+				if ( pWeapon )
+				{
+					pszTracerName = pWeapon->GetTracerType();
+				}
+
+				Vector vecTracerSrc = vOrigin;
+				int iAttachment = TRACER_DONT_USE_ATTACHMENT;
+				if ( g_pGameRules->IsMultiplayer() )
+				{
+					iAttachment = 1;
+				}
+
+				int iEntIndex = pPlayer->entindex();
+				if ( g_pGameRules->IsMultiplayer() && pWeapon )
+				{
+					iEntIndex = pWeapon->entindex();
+				}
+
+				switch ( iTracerType )
+				{
+				case TRACER_LINE:
+					UTIL_Tracer( vecTracerSrc, tracerTr.endpos, iEntIndex, iAttachment, 0.0f, false, pszTracerName );
+					break;
+				case TRACER_LINE_AND_WHIZ:
+					UTIL_Tracer( vecTracerSrc, tracerTr.endpos, iEntIndex, iAttachment, 0.0f, true, pszTracerName );
+					break;
+				}
+			}
+		}
+
 		pPlayer->FireBullet(
 			vOrigin,
 			vAngles,
