@@ -300,10 +300,41 @@ void FX_FireBullets(
 			Vector vecDir = vecDirShooting + xSpread * vecRight + ySpread * vecUp;
 			VectorNormalize( vecDir );
 
-			Vector vecEnd = vOrigin + vecDir * flRange;
+			// Get muzzle flash attachment position from weapon model.
+			// First-person (V model) vs third-person/other players (W model).
+			// Mirrors the logic in C_BaseCombatWeapon::GetShootPosition.
+			Vector vecMuzzle = vOrigin;
+#ifdef CLIENT_DLL
+			C_BaseCombatWeapon *pCSWeapon = pPlayer->GetActiveWeapon();
+			if ( pCSWeapon )
+			{
+				QAngle angDummy;
+				if ( pCSWeapon->IsActiveByLocalPlayer() && pCSWeapon->ShouldDrawUsingViewModel() )
+				{
+					// First-person: use viewmodel's muzzle attachment
+					C_BaseViewModel *pViewModel = pPlayer->GetViewModel( 0 );
+					if ( pViewModel )
+					{
+						int iMuzzle = pViewModel->LookupAttachment( "muzzle" );
+						if ( pViewModel->GetAttachment( iMuzzle, vecMuzzle, angDummy ) )
+						{
+							// vecMuzzle now holds the viewmodel muzzle position
+						}
+					}
+				}
+				else
+				{
+					// Third-person or other player: use world model's muzzle attachment
+					int iMuzzle = pCSWeapon->LookupAttachment( "muzzle" );
+					pCSWeapon->GetAttachment( iMuzzle, vecMuzzle, angDummy );
+				}
+			}
+#endif
 
+			// Trace from muzzle position to find tracer endpoint
+			Vector vecEnd = vecMuzzle + vecDir * flRange;
 			trace_t tracerTr;
-			UTIL_TraceLine( vOrigin, vecEnd, MASK_SHOT, pPlayer, COLLISION_GROUP_NONE, &tracerTr );
+			UTIL_TraceLine( vecMuzzle, vecEnd, MASK_SHOT, pPlayer, COLLISION_GROUP_NONE, &tracerTr );
 
 			// Get tracer type from ammo definition
 			int iTracerType = GetAmmoDef()->TracerType( iAmmoType );
@@ -316,27 +347,37 @@ void FX_FireBullets(
 					pszTracerName = pWeapon->GetTracerType();
 				}
 
-				Vector vecTracerSrc = vOrigin;
-				int iAttachment = TRACER_DONT_USE_ATTACHMENT;
-				if ( g_pGameRules->IsMultiplayer() )
+				// Use CEffectData directly (matching hl2mp approach)
+				CEffectData data;
+				data.m_vStart = vecMuzzle;
+				data.m_vOrigin = tracerTr.endpos;
+#ifdef CLIENT_DLL
+				if ( pWeapon )
 				{
-					iAttachment = 1;
+					data.m_hEntity = pWeapon->GetRefEHandle();
+				}
+#else
+				data.m_nEntIndex = pPlayer->entindex();
+#endif
+				data.m_flScale = 0.0f;
+
+				// TRACER_FLAG_USEATTACHMENT tells GetTracerOrigin on client to resolve
+				// the correct muzzle position from V model (local player) or W model (other players)
+				data.m_fFlags |= TRACER_FLAG_USEATTACHMENT;
+				data.m_nAttachmentIndex = 1;
+
+				if ( iTracerType == TRACER_LINE_AND_WHIZ )
+				{
+					data.m_fFlags |= TRACER_FLAG_WHIZ;
 				}
 
-				int iEntIndex = pPlayer->entindex();
-				if ( g_pGameRules->IsMultiplayer() && pWeapon )
+				if ( pszTracerName )
 				{
-					iEntIndex = pWeapon->entindex();
+					DispatchEffect( pszTracerName, data );
 				}
-
-				switch ( iTracerType )
+				else
 				{
-				case TRACER_LINE:
-					UTIL_Tracer( vecTracerSrc, tracerTr.endpos, iEntIndex, iAttachment, 0.0f, false, pszTracerName );
-					break;
-				case TRACER_LINE_AND_WHIZ:
-					UTIL_Tracer( vecTracerSrc, tracerTr.endpos, iEntIndex, iAttachment, 0.0f, true, pszTracerName );
-					break;
+					DispatchEffect( "Tracer", data );
 				}
 			}
 		}
