@@ -34,6 +34,9 @@ ClientModGuiMenu::ClientModGuiMenu( vgui::Panel *parent ) : vgui::PropertyPage( 
 	m_pDisplayRadarHealth = new CCvarToggleCheckButton( this, "RadarDisplayHealthCheckBox",   "#GameUI_Radar_Health_Display",   "hud_radar_display_healthbar" );
 	m_pDisplayRadarLine   = new CCvarToggleCheckButton( this, "RadarDisplayLineCheckBox",     "#GameUI_Radar_Line_Display",     "hud_radar_display_line" );
 	m_pDisplayRoundtimerC4= new CCvarToggleCheckButton( this, "RoundtimerDisplayC4CheckBox", "#GameUI_Roundtimer_Display_C4",  "hud_roundtimer_display_c4" );
+	#ifdef ANDROID
+    m_pKeyboardMouseMode  = new CCvarToggleCheckButton( this, "KeyboardMouseModeCheckBox",   "#GameUI_KeyboardMouseMode",      "cl_keyboard_mouse_mode" );
+    #endif
 
 	// Hex color text entry (RRGGBB)
 	m_pHudColorEntry = new TextEntry( this, "HudColorEntry" );
@@ -52,6 +55,9 @@ ClientModGuiMenu::ClientModGuiMenu( vgui::Panel *parent ) : vgui::PropertyPage( 
 	m_pDisplayRadarLine->AddActionSignalTarget( this );
 	m_pDisplayRoundtimerC4->AddActionSignalTarget( this );
 	m_pHudColorEntry->AddActionSignalTarget( this );
+	#ifdef ANDROID
+    m_pKeyboardMouseMode->AddActionSignalTarget( this );
+    #endif
 
 	LoadControlSettings( "Resource/OptionGuiMenu.res" );
 }
@@ -103,6 +109,9 @@ void ClientModGuiMenu::OnResetData()
 	m_pDisplayRadarHealth->Reset();
 	m_pDisplayRadarLine->Reset();
 	m_pDisplayRoundtimerC4->Reset();
+	#ifdef ANDROID
+    m_pKeyboardMouseMode->Reset();
+    #endif
 
 	// Read "R G B" cvar and convert to RRGGBB hex for the text box
 	int r = 255, g = 255, b = 255;
@@ -127,6 +136,9 @@ void ClientModGuiMenu::OnApplyChanges()
 	m_pDisplayRadarHealth->ApplyChanges();
 	m_pDisplayRadarLine->ApplyChanges();
 	m_pDisplayRoundtimerC4->ApplyChanges();
+	#ifdef ANDROID
+    m_pKeyboardMouseMode->ApplyChanges();
+    #endif
 
 	// Parse RRGGBB hex from the text entry and apply
 	char szHex[8];

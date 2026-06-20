@@ -84,7 +84,7 @@ ConVar in_joystick( "joystick","0", FCVAR_ARCHIVE );
 
 ConVar thirdperson_platformer( "thirdperson_platformer", "0", 0, "Player will aim in the direction they are moving." );
 ConVar thirdperson_screenspace( "thirdperson_screenspace", "0", 0, "Movement will be relative to the camera, eg: left means screen-left" );
-
+ConVar cl_keyboard_mouse_mode( "cl_keyboard_mouse_mode", "0", FCVAR_ARCHIVE, "Enable physical mouse & keyboard input for Android devices." );
 ConVar sv_noclipduringpause( "sv_noclipduringpause", "0", FCVAR_REPLICATED | FCVAR_CHEAT, "If cheats are enabled, then you can noclip with the game paused (for doing screenshots, etc.)." );
 
 extern ConVar cl_mouselook;
@@ -940,7 +940,7 @@ ControllerMove
 */
 void CInput::ControllerMove( float frametime, CUserCmd *cmd )
 {
-        if ( IsPC() )
+        if ( IsPC() || cl_keyboard_mouse_mode.GetBool() )
         {
                 if ( !m_fCameraInterceptingMouse && m_fMouseActive )
                 {
@@ -949,8 +949,12 @@ void CInput::ControllerMove( float frametime, CUserCmd *cmd )
         }
 
         JoyStickMove( frametime, cmd);
-
-        TouchMove( cmd );
+        
+        // Skip touch input when the user is playing with a physical mouse & keyboard.
+        if ( !cl_keyboard_mouse_mode.GetBool() )
+        {
+        	TouchMove( cmd );
+        }
 
         // NVNT if we have a haptic device..
         if(haptics && haptics->HasDevice())
@@ -1201,9 +1205,9 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 
         // Using joystick?
 #ifdef SIXENSE
-        if ( in_joystick.GetInt() || g_pSixenseInput->IsEnabled() || touch_enable.GetInt() )
+        if ( in_joystick.GetInt() || g_pSixenseInput->IsEnabled() || touch_enable.GetInt() || !cl_keyboard_mouse_mode.GetBool() )
 #else
-        if ( in_joystick.GetInt() || touch_enable.GetInt() )
+        if ( in_joystick.GetInt() || touch_enable.GetInt() || !cl_keyboard_mouse_mode.GetBool() )
 #endif
         {
                 if ( cmd->forwardmove > 0 )

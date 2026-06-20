@@ -45,6 +45,9 @@ private:
 	CCvarToggleCheckButton*		m_pDisplayRadarHealth;
 	CCvarToggleCheckButton*		m_pDisplayRadarLine;
 	CCvarToggleCheckButton*		m_pDisplayRoundtimerC4;
+	#ifdef ANDROID
+    CCvarToggleCheckButton*         m_pKeyboardMouseMode;
+    #endif
 };
 
 #endif // CLIENTMODGUIMENU_H

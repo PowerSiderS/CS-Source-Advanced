@@ -29,6 +29,7 @@ extern IMatSystemSurface *g_pMatSystemSurface;
 #define TOUCH_DEFAULT "0"
 #endif
 
+extern ConVar cl_keyboard_mouse_mode;
 extern ConVar sensitivity;
 
 #define TOUCH_DEFAULT_CFG "touch_default.cfg"
@@ -650,7 +651,7 @@ void CTouchControls::Frame()
         else
                 m_bCutScene = false;
 
-        if( touch_enable.GetBool() && touch_draw.GetBool() && !enginevgui->IsGameUIVisible() && !m_bMenuOpen ) Paint();
+        if( touch_enable.GetBool() && touch_draw.GetBool() && !enginevgui->IsGameUIVisible() && !m_bMenuOpen && !cl_keyboard_mouse_mode.GetBool() ) Paint();
 }
 
 void CTouchControls::Paint()
@@ -966,7 +967,7 @@ CTouchButton *CTouchControls::FindButton( const char *name )
 
 void CTouchControls::ProcessEvent(touch_event_t *ev)
 {
-    if( !touch_enable.GetBool() || m_bMenuOpen )
+    if( !touch_enable.GetBool() || m_bMenuOpen || cl_keyboard_mouse_mode.GetBool() )
         return;
 
     if( state == state_edit )
