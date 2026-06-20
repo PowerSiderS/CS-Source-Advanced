@@ -114,7 +114,9 @@ COptionsDialog::COptionsDialog( vgui::Panel *parent )
         m_pSheetVideo->AddPage( new ClientModMainMenu( this ),  "#GameUI_ClientModMain" );
         m_pOptionsSubVideo = new COptionsSubVideo( this );
         m_pSheetVideo->AddPage( m_pOptionsSubVideo, "#GameUI_Video" );
+        #ifdef ANDROID
         m_pSheetVideo->AddPage( new ClientModGyroMenu( this ),  "#GameUI_ClientModGyro" );
+        #endif
         m_pSheetVideo->SetTabWidth( 84 );
 
         // ---- Gameplay: Crosshair | Multiplayer | GUI ----
