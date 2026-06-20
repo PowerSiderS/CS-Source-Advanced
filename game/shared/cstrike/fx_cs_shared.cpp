@@ -9,8 +9,11 @@
 #include "weapon_csbase.h"
 #include "ammodef.h"
 
-#ifndef CLIENT_DLL
-	#include "ilagcompensationmanager.h"
+#ifdef CLIENT_DLL
+        #include "c_te_effect_dispatch.h"
+#else
+        #include "te_effect_dispatch.h"
+        #include "ilagcompensationmanager.h"
 #endif
 
 ConVar weapon_accuracy_logging( "weapon_accuracy_logging", "0", FCVAR_REPLICATED | FCVAR_DEVELOPMENTONLY | FCVAR_ARCHIVE );
