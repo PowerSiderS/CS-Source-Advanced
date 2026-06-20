@@ -1,16 +1,17 @@
 #include "ClientModGuiMenu.h"
 #include <stdio.h>
+#include <string.h>
 
 #include <vgui_controls/Button.h>
 #include <vgui_controls/Label.h>
 #include <vgui_controls/ComboBox.h>
+#include <vgui_controls/TextEntry.h>
 #include "tier1/KeyValues.h"
 
 #include "CvarToggleCheckButton.h"
 #include "cvarslider.h"
 #include "LabeledCommandComboBox.h"
 #include "tier1/convar.h"
-#include "matsys_controls/colorpickerpanel.h"
 
 #include <tier0/memdbgon.h>
 
@@ -34,9 +35,9 @@ ClientModGuiMenu::ClientModGuiMenu( vgui::Panel *parent ) : vgui::PropertyPage( 
 	m_pDisplayRadarLine   = new CCvarToggleCheckButton( this, "RadarDisplayLineCheckBox",     "#GameUI_Radar_Line_Display",     "hud_radar_display_line" );
 	m_pDisplayRoundtimerC4= new CCvarToggleCheckButton( this, "RoundtimerDisplayC4CheckBox", "#GameUI_Roundtimer_Display_C4",  "hud_roundtimer_display_c4" );
 
-	// Color picker button
-	m_pHudColorButton = new CColorPickerButton( this, "HudColorPickerButton", this );
-	m_pHudColorButton->SetSize( 20, 30 );
+	// Hex color text entry (RRGGBB)
+	m_pHudColorEntry = new TextEntry( this, "HudColorEntry" );
+	m_pHudColorEntry->SetMaximumCharCount( 6 );
 
 	m_pPlayerCountPos->AddActionSignalTarget( this );
 	m_pRadarSquare->AddActionSignalTarget( this );
@@ -50,6 +51,7 @@ ClientModGuiMenu::ClientModGuiMenu( vgui::Panel *parent ) : vgui::PropertyPage( 
 	m_pDisplayRadarHealth->AddActionSignalTarget( this );
 	m_pDisplayRadarLine->AddActionSignalTarget( this );
 	m_pDisplayRoundtimerC4->AddActionSignalTarget( this );
+	m_pHudColorEntry->AddActionSignalTarget( this );
 
 	LoadControlSettings( "Resource/OptionGuiMenu.res" );
 }
@@ -86,25 +88,6 @@ void ClientModGuiMenu::OnCheckButtonChecked()
 	OnControlModified();
 }
 
-void ClientModGuiMenu::OnHudColorPicked( KeyValues *data )
-{
-	Color clr = data->GetColor( "color" );
-	ApplyHudColor( clr.r(), clr.g(), clr.b() );
-	OnControlModified();
-}
-
-void ClientModGuiMenu::OnHudColorPreview( KeyValues *data )
-{
-	Color clr = data->GetColor( "color" );
-	ApplyHudColor( clr.r(), clr.g(), clr.b() );
-}
-
-void ClientModGuiMenu::OnHudColorCancel( KeyValues *data )
-{
-	Color clr = data->GetColor( "startingColor" );
-	ApplyHudColor( clr.r(), clr.g(), clr.b() );
-}
-
 void ClientModGuiMenu::OnResetData()
 {
 	m_pPlayerCountPos->SetInitialItem( ConVarRef( "hud_playercount_pos" ).GetInt() );
@@ -121,9 +104,12 @@ void ClientModGuiMenu::OnResetData()
 	m_pDisplayRadarLine->Reset();
 	m_pDisplayRoundtimerC4->Reset();
 
+	// Read "R G B" cvar and convert to RRGGBB hex for the text box
 	int r = 255, g = 255, b = 255;
 	sscanf( ConVarRef( "hud_color" ).GetString(), "%d %d %d", &r, &g, &b );
-	m_pHudColorButton->SetColor( r, g, b, 255 );
+	char szHex[8];
+	Q_snprintf( szHex, sizeof( szHex ), "%02X%02X%02X", r, g, b );
+	m_pHudColorEntry->SetText( szHex );
 }
 
 void ClientModGuiMenu::OnApplyChanges()
@@ -142,6 +128,17 @@ void ClientModGuiMenu::OnApplyChanges()
 	m_pDisplayRadarLine->ApplyChanges();
 	m_pDisplayRoundtimerC4->ApplyChanges();
 
-	Color clr = m_pHudColorButton->GetColor();
-	ApplyHudColor( clr.r(), clr.g(), clr.b() );
+	// Parse RRGGBB hex from the text entry and apply
+	char szHex[8];
+	m_pHudColorEntry->GetText( szHex, sizeof( szHex ) );
+	int r = 255, g = 255, b = 255;
+	if ( strlen( szHex ) == 6 )
+	{
+		unsigned int hex = 0;
+		sscanf( szHex, "%X", &hex );
+		r = ( hex >> 16 ) & 0xFF;
+		g = ( hex >> 8  ) & 0xFF;
+		b =   hex         & 0xFF;
+	}
+	ApplyHudColor( r, g, b );
 }
