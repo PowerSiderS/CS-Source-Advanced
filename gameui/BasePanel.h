@@ -397,6 +397,7 @@ private:
 
         void                                            DrawBackgroundImage();
         int                                                     m_iBackgroundImageID;
+        int                                                     m_iLastBackgroundIndex; // tracks cl_background for live reload
         int                                                     m_iRenderTargetImageID;
         int                                                     m_iLoadingImageID;
         int                                                     m_iProductImageID;

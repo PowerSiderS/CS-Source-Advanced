@@ -809,6 +809,7 @@ CBasePanel::CBasePanel() : Panel(NULL, "BaseGameUIPanel")
 
         m_iRenderTargetImageID = -1;
         m_iBackgroundImageID = -1;
+        m_iLastBackgroundIndex = -1;
         m_iProductImageID = -1;
         m_iLoadingImageID = -1;
 
@@ -1428,6 +1429,41 @@ void CBasePanel::DrawBackgroundImage()
                 alpha = 255 - clamp( alpha, 0, 255 );
         }
 
+        // Live background switching: check cl_background every frame and reload
+        if ( !IsX360() )
+        {
+                extern ConVar cl_background;
+                int bgIndex = cl_background.GetInt();
+                if ( bgIndex != m_iLastBackgroundIndex )
+                {
+                        m_iLastBackgroundIndex = bgIndex;
+
+                        int screenWide, screenTall;
+                        surface()->GetScreenSize( screenWide, screenTall );
+                        bool bIsWidescreen = ( (float)screenWide / (float)screenTall ) >= 1.5999f;
+
+                        char filename[MAX_PATH];
+                        if ( bgIndex >= 2 && bgIndex <= 6 )
+                        {
+                                Q_snprintf( filename, sizeof( filename ), "console/background%02d%s",
+                                        bgIndex, bIsWidescreen ? "_widescreen" : "" );
+                        }
+                        else
+                        {
+                                char bgName[MAX_PATH];
+                                engine->GetMainMenuBackgroundName( bgName, sizeof( bgName ) );
+                                Q_snprintf( filename, sizeof( filename ), "console/%s%s",
+                                        bgName, bIsWidescreen ? "_widescreen" : "" );
+                        }
+
+                        if ( m_iBackgroundImageID == -1 )
+                                m_iBackgroundImageID = surface()->CreateNewTextureID();
+
+                        // forceReload=true bypasses the material system's filename cache
+                        surface()->DrawSetTextureFile( m_iBackgroundImageID, filename, false, true );
+                }
+        }
+
         int iImageID = m_iBackgroundImageID;
         if ( IsX360() )
         {
@@ -1884,10 +1920,24 @@ void CBasePanel::ApplySchemeSettings(IScheme *pScheme)
         // work out which background image to use
         if ( IsPC() || !IsX360() )
         {
-                // pc uses blurry backgrounds based on the background level
-                char background[MAX_PATH];
-                engine->GetMainMenuBackgroundName( background, sizeof(background) );
-                Q_snprintf( filename, sizeof( filename ), "console/%s%s", background, ( bIsWidescreen ? "_widescreen" : "" ) );
+                // pc uses blurry backgrounds based on the background level.
+                // Dynamic per-frame switching is handled in DrawBackgroundImage().
+                // Force m_iLastBackgroundIndex out of sync so DrawBackgroundImage
+                // reloads with forceReload=true on the very next frame.
+                m_iLastBackgroundIndex = -1;
+
+                extern ConVar cl_background;
+                int bgIndex = cl_background.GetInt();
+                if ( bgIndex >= 2 && bgIndex <= 6 )
+                {
+                        Q_snprintf( filename, sizeof( filename ), "console/background%02d%s", bgIndex, ( bIsWidescreen ? "_widescreen" : "" ) );
+                }
+                else
+                {
+                        char background[MAX_PATH];
+                        engine->GetMainMenuBackgroundName( background, sizeof(background) );
+                        Q_snprintf( filename, sizeof( filename ), "console/%s%s", background, ( bIsWidescreen ? "_widescreen" : "" ) );
+                }
         }
         else
         {
