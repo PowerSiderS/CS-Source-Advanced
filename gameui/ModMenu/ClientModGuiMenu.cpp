@@ -60,6 +60,11 @@ ClientModGuiMenu::ClientModGuiMenu( vgui::Panel *parent ) : vgui::PropertyPage( 
     #endif
 
 	LoadControlSettings( "Resource/OptionGuiMenu.res" );
+
+	#ifdef ANDROID
+	if ( m_pKeyboardMouseMode )
+		m_pKeyboardMouseMode->SetVisible( true );
+	#endif
 }
 
 ClientModGuiMenu::~ClientModGuiMenu()
