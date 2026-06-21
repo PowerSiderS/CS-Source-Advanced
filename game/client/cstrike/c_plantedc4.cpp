@@ -201,6 +201,9 @@ void C_PlantedC4::ClientThink( void )
 
 		m_flNextGlow = gpGlobals->curtime + freq;
 	}
+
+	float flNextWakeUpdated = MIN( m_flNextBeep, m_flNextGlow );
+	SetNextClientThink( flNextWakeUpdated );
 }
 
 

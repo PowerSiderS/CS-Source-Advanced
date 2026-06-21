@@ -104,6 +104,7 @@ private:
 	int m_seq;
 
 	bool m_createdLowViolenceRagdoll;
+	float m_flLastFadeThink;
 	
 private:
 	C_CHostage( const C_CHostage & );				// not defined, not accessible

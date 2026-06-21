@@ -135,7 +135,17 @@ void C_ParticleSystem::ClientThink( void )
 			AssertMsg1( pEffect, "Particle system couldn't make %s", pszName );
 			if (pEffect)
 			{
-				for ( int i = 0 ; i < kMAXCONTROLPOINTS ; ++i )
+				int nHighestUsed = -1;
+				for ( int i = kMAXCONTROLPOINTS - 1; i >= 0; --i )
+				{
+					if ( m_hControlPointEnts[i].Get() || m_iControlPointParents[i] != 0 )
+					{
+						nHighestUsed = i;
+						break;
+					}
+				}
+
+				for ( int i = 0 ; i <= nHighestUsed ; ++i )
 				{
 					CBaseEntity *pOnEntity = m_hControlPointEnts[i].Get();
 					if ( pOnEntity )

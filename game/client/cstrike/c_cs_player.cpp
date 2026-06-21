@@ -1299,7 +1299,15 @@ void C_CSPlayer::ClientThink()
 
         UpdateAddonModels();
 
-        UpdateIDTarget();
+        if ( IsLocalPlayer() )
+        {
+                static float s_flNextIDTargetUpdate = 0.0f;
+                if ( gpGlobals->curtime >= s_flNextIDTargetUpdate )
+                {
+                        UpdateIDTarget();
+                        s_flNextIDTargetUpdate = gpGlobals->curtime + 0.05f; // 20 Hz
+                }
+        }
 
         if ( gpGlobals->curtime >= m_fNextThinkPushAway )
         {

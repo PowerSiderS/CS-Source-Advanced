@@ -106,6 +106,9 @@ private:
 	// Makes sure the entries are thinked once per frame in the face of hierarchy
 	int m_nIterEnum;
 	bool m_bInThinkLoop;
+
+	ThinkEntry_t **m_ppFrameThinkList;
+	int            m_FrameThinkListCapacity;
 };
 
 

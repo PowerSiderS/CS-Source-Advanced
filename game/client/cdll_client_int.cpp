@@ -1279,8 +1279,24 @@ void CHLClient::HudUpdate( bool bActive )
 	// run vgui animations
 	vgui::GetAnimationController()->UpdateAnimations( engine->Time() );
 
-	hudlcd->SetGlobalStat( "(time_int)", VarArgs( "%d", (int)gpGlobals->curtime ) );
-	hudlcd->SetGlobalStat( "(time_float)", VarArgs( "%.2f", gpGlobals->curtime ) );
+	// value actually changes instead of calling VarArgs (which allocates a temp buffer) every frame.
+	static int   s_nLastTimeInt   = -1;
+	static float s_flLastTimeFloat = -1.0f;
+	const int   nTimeInt   = (int)gpGlobals->curtime;
+	const float flTimeFrac = gpGlobals->curtime;
+
+	if ( nTimeInt != s_nLastTimeInt )
+	{
+		s_nLastTimeInt = nTimeInt;
+		hudlcd->SetGlobalStat( "(time_int)", VarArgs( "%d", nTimeInt ) );
+	}
+
+	// Update the float display at most once every ~0.01s (two decimal places change at that rate)
+	if ( fabsf( flTimeFrac - s_flLastTimeFloat ) >= 0.009f )
+	{
+		s_flLastTimeFloat = flTimeFrac;
+		hudlcd->SetGlobalStat( "(time_float)", VarArgs( "%.2f", flTimeFrac ) );
+	}
 
 	// I don't think this is necessary any longer, but I will leave it until
 	// I can check into this further.

@@ -59,7 +59,7 @@ static ConVar cl_particle_stats_trigger_count( "cl_particle_stats_trigger_count"
 
 
 #define BUCKET_SORT_EVERY_N		8			// It does a bucket sort for each material approximately every N times.
-#define BBOX_UPDATE_EVERY_N		8			// It does a full bbox update (checks all particles instead of every eighth one).
+#define BBOX_UPDATE_EVERY_N		20			// It does a full bbox update (checks all particles instead of every eighth one).
 
 //-----------------------------------------------------------------------------
 //

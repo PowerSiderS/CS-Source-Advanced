@@ -202,6 +202,7 @@ C_CHostage::C_CHostage()
 	m_flDeadOrRescuedTime = 0.0;
 	m_flLastBodyYaw = 0;
 	m_createdLowViolenceRagdoll = false;
+	m_flLastFadeThink = 0.0f;
 	
 	// TODO: Get IK working on the steep slopes CS has, then enable it on characters.
 	m_EntClientFlags |= ENTCLIENTFLAG_DONTUSEIK;
@@ -467,16 +468,23 @@ void C_CHostage::ClientThink()
 {
 	C_BaseCombatCharacter::ClientThink();
 
+	const float HOSTAGE_FADE_INTERVAL = 0.033f;
 	int speed = 2;
 	int a = m_clrRender->a;
 
-	a = MAX( 0, a - speed );
+	// Scale the fade step by the actual elapsed interval to maintain consistent fade speed
+	float flElapsed = gpGlobals->curtime - m_flLastFadeThink;
+	if ( flElapsed < 0.0f ) flElapsed = HOSTAGE_FADE_INTERVAL;
+	int nStep = MAX( 1, (int)( speed * flElapsed / HOSTAGE_FADE_INTERVAL ) );
+	a = MAX( 0, a - nStep );
 
 	SetRenderColorA( a );
+	m_flLastFadeThink = gpGlobals->curtime;
 
 	if ( m_clrRender->a > 0 )
 	{
 		SetNextClientThink( gpGlobals->curtime + 0.001 );
+		SetNextClientThink( gpGlobals->curtime + HOSTAGE_FADE_INTERVAL );
 	}
 }
 

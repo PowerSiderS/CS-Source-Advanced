@@ -15,12 +15,16 @@ CClientThinkList g_ClientThinkList;
 
 
 CClientThinkList::CClientThinkList()
+	: m_ppFrameThinkList( NULL )
+	, m_FrameThinkListCapacity( 0 )
 {
 }
 
 
 CClientThinkList::~CClientThinkList()
 {
+	delete[] m_ppFrameThinkList;
+	m_ppFrameThinkList = NULL;
 }
 
 
@@ -276,7 +280,13 @@ void CClientThinkList::PerformThinkFunctions()
 	// Build a list of entities to think this frame, in order of hierarchy.
 	// Do this because the list may be modified during the thinking and also to
 	// prevent bad situations where an entity can think more than once in a frame.
-	ThinkEntry_t **ppThinkEntryList = (ThinkEntry_t**)stackalloc( nMaxList * sizeof(ThinkEntry_t*) );
+	if ( nMaxList > m_FrameThinkListCapacity )
+	{
+		delete[] m_ppFrameThinkList;
+		m_FrameThinkListCapacity = nMaxList + 16; // over-allocate slightly to avoid frequent reallocs
+		m_ppFrameThinkList = new ThinkEntry_t*[ m_FrameThinkListCapacity ];
+	}
+	ThinkEntry_t **ppThinkEntryList = m_ppFrameThinkList;
 	int nThinkCount = 0;
 	for ( unsigned short iCur=m_ThinkEntries.Head(); iCur != m_ThinkEntries.InvalidIndex(); iCur = m_ThinkEntries.Next( iCur ) )
 	{
