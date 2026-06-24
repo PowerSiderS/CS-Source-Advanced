@@ -313,6 +313,10 @@ LINK_ENTITY_TO_CLASS( weapon_cs_base, CWeaponCSBase );
 
 #endif
 
+// Spread scale
+ConVar sv_spread_scale( "sv_spread_scale", "0.7", FCVAR_ARCHIVE,
+        "Multiplier applied to all weapon spread and inaccuracy (1.0 = default, lower = tighter)" );
+
 #if defined( CLIENT_DLL )
         ConVar cl_crosshaircolor( "cl_crosshaircolor", "0", FCVAR_CLIENTDLL | FCVAR_ARCHIVE, "Set crosshair color: 0=green, 1=red, 2=blue, 3=yellow, 4=cyan, 5=custom" );
         ConVar cl_dynamiccrosshair( "cl_dynamiccrosshair", "1", FCVAR_CLIENTDLL | FCVAR_ARCHIVE, "Enables dynamic crosshair; 0=off, 1=normal behavior (based on actual weapon accuracy), 2=legacy simulated dynamic behavior, 3=legacy simulated static behavior" );
@@ -710,11 +714,12 @@ float CWeaponCSBase::GetInaccuracy() const
         if ( fMaxSpeed == 0.0f )
                 fMaxSpeed = GetCSWpnData().m_flMaxSpeed;
 
-        return m_fAccuracyPenalty + 
+        float flScale = sv_spread_scale.GetFloat();
+        return ( m_fAccuracyPenalty + 
                 RemapValClamped(pPlayer->GetAbsVelocity().Length2D(), 
                 fMaxSpeed * CS_PLAYER_SPEED_DUCK_MODIFIER, 
                 fMaxSpeed * 0.95f,                                                      // max out at 95% of run speed to avoid jitter near max speed
-                0.0f, weaponInfo.m_fInaccuracyMove[m_weaponMode]);
+                0.0f, weaponInfo.m_fInaccuracyMove[m_weaponMode]) ) * flScale;
 }
 
 
@@ -723,7 +728,7 @@ float CWeaponCSBase::GetSpread() const
         if ( weapon_accuracy_model.GetInt() == 1 )
                 return 0.0f;
 
-        return GetCSWpnData().m_fSpread[m_weaponMode];
+        return GetCSWpnData().m_fSpread[m_weaponMode] * sv_spread_scale.GetFloat();
 }
 
 
