@@ -71,6 +71,9 @@ void SetLauncherArgs()
                         get_prop("ro.serialno", androidId);
                         get_prop("ro.product.model", model);
                         get_prop("ro.product.manufacturer", manufacturer);
+                        char fingerprint[PROP_VALUE_MAX] = {0};
+                        get_prop("ro.build.fingerprint", fingerprint);
+                        if (fingerprint[0]) setenv("DEVICE_FINGERPRINT", fingerprint, 1);
                 }
                 dlclose(handle);
         }
