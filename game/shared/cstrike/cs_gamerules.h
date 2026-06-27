@@ -75,6 +75,57 @@ extern ConVar mp_playerid;
         };
 #endif
 
+//=============================================================================
+// CCSMatch — tracks per-half and overtime scores, drives halftime/overtime flow
+//=============================================================================
+#ifndef CLIENT_DLL
+class CCSMatch
+{
+public:
+	CCSMatch();
+
+	void Reset( void );
+
+	void SetPhase( GamePhase phase );
+	GamePhase GetPhase( void ) const { return m_phase; }
+
+	void AddTerroristWins( int numWins );
+	void AddCTWins( int numWins );
+	void IncrementRound( int nNumRounds );
+
+	void AddTerroristBonusPoints( int numPoints );
+	void AddCTBonusPoints( int numPoints );
+
+	int GetTerroristScore( void ) const { return m_terroristScoreTotal; }
+	int GetCTScore( void ) const        { return m_ctScoreTotal; }
+	int GetRoundsPlayed( void ) const   { return m_actualRoundsPlayed; }
+
+	void SwapTeamScores( void );
+	int  GetWinningTeam( void );
+
+	void AddTerroristScore( int score );
+	void AddCTScore( int score );
+	void GoToOvertime( int numOvertimesToAdd );
+
+private:
+	void UpdateTeamScores( void );
+
+	short m_actualRoundsPlayed;
+	short m_nOvertimePlaying;
+
+	short m_ctScoreFirstHalf;
+	short m_ctScoreSecondHalf;
+	short m_ctScoreOvertime;
+	short m_ctScoreTotal;
+
+	short m_terroristScoreFirstHalf;
+	short m_terroristScoreSecondHalf;
+	short m_terroristScoreOvertime;
+	short m_terroristScoreTotal;
+
+	GamePhase m_phase;
+};
+#endif // !CLIENT_DLL
 
 class CCSGameRulesProxy : public CGameRulesProxy
 {
@@ -137,6 +188,11 @@ private:
         CNetworkVar( bool, m_bMapHasRescueZone );
         CNetworkVar( bool, m_bLogoMap );                 // If there's an info_player_logo entity, then it's a logo map.
         CNetworkVar( bool, m_bBlackMarket );
+
+        // Halftime / overtime phase (replicated to client)
+        CNetworkVar( int, m_gamePhase );
+        CNetworkVar( int, m_nOvertimePlaying );
+        CNetworkVar( int, m_totalRoundsPlayed );
 
         bool            m_bDontUploadStats;
 
@@ -275,7 +331,7 @@ public:
         //=============================================================================
 
         void RestartRound( void );
-        void BalanceTeams( void );
+        void BalanceTeams( void );        
         void MoveHumansToHumanTeam( void );
         bool TeamFull( int team_id );
         bool TeamStacked( int newTeam_id, int curTeam_id  );
@@ -326,6 +382,30 @@ public:
 
         void BroadcastSound( const char *sound, int team = -1 );
 
+        // Halftime / Overtime API
+        bool HasHalfTime( void ) const;
+        bool IsLastRoundBeforeHalfTime( void );
+        bool IsLastRoundOfMatch( void ) const;
+        bool IsMatchPoint( void ) const;
+        bool AreTeamsPlayingSwitchedSides( void ) const;
+        int  GetNumWinsToClinch( void ) const;
+
+        // Accessors for replicated match state
+        GamePhase GetGamePhase( void ) const        { return (GamePhase) m_gamePhase.Get(); }
+        int       GetTotalRoundsPlayed( void ) const { return m_totalRoundsPlayed; }
+        int       GetOvertimePlaying( void ) const  { return m_nOvertimePlaying; }
+
+        void SetGamePhase( GamePhase newPhase )     { m_gamePhase = newPhase; }
+        void SetTotalRoundsPlayed( int n )          { m_totalRoundsPlayed = n; }
+        void SetOvertimePlaying( int n )            { m_nOvertimePlaying = n; }
+
+#ifndef CLIENT_DLL
+        CCSMatch  m_match;
+        void SwitchTeamsAtRoundReset( void );
+        void HandleSwapTeams( void );
+        void FreezePlayers( void );
+        void UnfreezeAllPlayers( void );
+#endif
 
         // VIP FUNCTIONS
         bool VIPRoundEndCheck( bool bNeededPlayers );
@@ -399,12 +479,19 @@ public:
         int m_iLoserBonus;                      // SupraFiend: the amount of money the losing team gets. This scales up as they lose more rounds in a row
         float m_tmNextPeriodicThink;
 
-        // Warmup state (server-only, not networked)
+        // Warmup state
         bool  m_bInWarmup;
         bool  m_bWarmupDone;
         float m_flWarmupEndTime;
         float m_flNextWarmupHint;
 
+#ifndef CLIENT_DLL
+        // Halftime / team-swap state
+        bool  m_bSwapTeamsOnRestart;
+        bool  m_bSwitchingTeamsAtRoundReset;
+        float m_phaseChangeAnnouncementTime;
+        float m_flLastThinkTime;
+#endif
 
         // HOSTAGE RESCUE VARIABLES
         int             m_iHostagesRescued;

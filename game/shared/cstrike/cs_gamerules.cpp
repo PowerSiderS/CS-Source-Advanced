@@ -119,7 +119,10 @@ BEGIN_NETWORK_TABLE_NOBASE( CCSGameRules, DT_CSGameRules )
                 RecvPropBool( RECVINFO( m_bMapHasBombTarget ) ),
                 RecvPropBool( RECVINFO( m_bMapHasRescueZone ) ),
                 RecvPropBool( RECVINFO( m_bLogoMap ) ),
-                RecvPropBool( RECVINFO( m_bBlackMarket ) )
+                RecvPropBool( RECVINFO( m_bBlackMarket ) ),
+                RecvPropInt( RECVINFO( m_gamePhase ) ),
+                RecvPropInt( RECVINFO( m_nOvertimePlaying ) ),
+                RecvPropInt( RECVINFO( m_totalRoundsPlayed ) )
         #else
                 SendPropBool( SENDINFO( m_bFreezePeriod ) ),
                 SendPropInt( SENDINFO( m_iRoundTime ), 16 ),
@@ -129,7 +132,10 @@ BEGIN_NETWORK_TABLE_NOBASE( CCSGameRules, DT_CSGameRules )
                 SendPropBool( SENDINFO( m_bMapHasBombTarget ) ),
                 SendPropBool( SENDINFO( m_bMapHasRescueZone ) ),
                 SendPropBool( SENDINFO( m_bLogoMap ) ),
-                SendPropBool( SENDINFO( m_bBlackMarket ) )
+                SendPropBool( SENDINFO( m_bBlackMarket ) ),
+                SendPropInt( SENDINFO( m_gamePhase ), 4, SPROP_UNSIGNED ),
+                SendPropInt( SENDINFO( m_nOvertimePlaying ), 4, SPROP_UNSIGNED ),
+                SendPropInt( SENDINFO( m_totalRoundsPlayed ), 8, SPROP_UNSIGNED )
         #endif
 END_NETWORK_TABLE()
 
@@ -427,6 +433,54 @@ ConVar cl_autohelp(
                 FCVAR_REPLICATED,
                 "Ignore conditions which would end the current round");
 
+        ConVar mp_halftime(
+                "mp_halftime",
+                "0",
+                FCVAR_REPLICATED | FCVAR_NOTIFY,
+                "Determines whether the match switches sides in a halftime event." );
+
+        ConVar mp_halftime_duration(
+                "mp_halftime_duration",
+                "15",
+                FCVAR_REPLICATED | FCVAR_NOTIFY,
+                "Number of seconds that halftime lasts." );
+
+        ConVar mp_overtime_enable(
+                "mp_overtime_enable",
+                "0",
+                FCVAR_REPLICATED | FCVAR_NOTIFY,
+                "Enables overtime play if match is tied after regulation." );
+
+        ConVar mp_overtime_maxrounds(
+                "mp_overtime_maxrounds",
+                "6",
+                FCVAR_REPLICATED | FCVAR_NOTIFY,
+                "Number of rounds in each overtime period.",
+                true, 2,
+                true, 100 );
+
+        ConVar mp_overtime_startmoney(
+                "mp_overtime_startmoney",
+                "10000",
+                FCVAR_REPLICATED | FCVAR_NOTIFY,
+                "Starting money in overtime rounds.",
+                true, 0,
+                true, 65535 );
+
+        ConVar mp_match_can_clinch(
+                "mp_match_can_clinch",
+                "1",
+                FCVAR_REPLICATED | FCVAR_NOTIFY,
+                "If 1, a team can clinch the match by winning enough rounds." );
+
+        ConVar mp_win_panel_display_time(
+                "mp_win_panel_display_time",
+                "3",
+                FCVAR_REPLICATED | FCVAR_NOTIFY,
+                "Seconds to display the win panel before beginning the next half/overtime.",
+                true, 0,
+                true, 30 );
+
         ConCommand EndRound( "endround", &CCSGameRules::EndRound, "End the current round.", FCVAR_CHEAT );
 
 
@@ -578,6 +632,141 @@ ConVar cl_autohelp(
         }
 
         // --------------------------------------------------------------------------------------------------- //
+        // CCSMatch implementation.
+        // --------------------------------------------------------------------------------------------------- //
+
+#ifndef CLIENT_DLL
+        CCSMatch::CCSMatch()
+        {
+                m_actualRoundsPlayed = 0;
+                m_nOvertimePlaying = 0;
+                m_ctScoreFirstHalf = m_ctScoreSecondHalf = m_ctScoreOvertime = m_ctScoreTotal = 0;
+                m_terroristScoreFirstHalf = m_terroristScoreSecondHalf = m_terroristScoreOvertime = m_terroristScoreTotal = 0;
+                m_phase = GAMEPHASE_PLAYING_STANDARD;
+        }
+
+        void CCSMatch::Reset( void )
+        {
+                m_actualRoundsPlayed = 0;
+                CSGameRules()->SetTotalRoundsPlayed( 0 );
+                m_nOvertimePlaying = 0;
+                CSGameRules()->SetOvertimePlaying( 0 );
+
+                m_ctScoreFirstHalf = m_ctScoreSecondHalf = m_ctScoreOvertime = m_ctScoreTotal = 0;
+                m_terroristScoreFirstHalf = m_terroristScoreSecondHalf = m_terroristScoreOvertime = m_terroristScoreTotal = 0;
+
+                if ( CSGameRules()->HasHalfTime() )
+                        SetPhase( GAMEPHASE_PLAYING_FIRST_HALF );
+                else
+                        SetPhase( GAMEPHASE_PLAYING_STANDARD );
+
+                UpdateTeamScores();
+        }
+
+        void CCSMatch::SetPhase( GamePhase phase )
+        {
+                m_phase = phase;
+                CSGameRules()->SetGamePhase( phase );
+        }
+
+        void CCSMatch::AddTerroristWins( int numWins )
+        {
+                m_actualRoundsPlayed += numWins;
+                CSGameRules()->SetTotalRoundsPlayed( m_actualRoundsPlayed );
+                AddTerroristScore( numWins );
+        }
+
+        void CCSMatch::AddCTWins( int numWins )
+        {
+                m_actualRoundsPlayed += numWins;
+                CSGameRules()->SetTotalRoundsPlayed( m_actualRoundsPlayed );
+                AddCTScore( numWins );
+        }
+
+        void CCSMatch::IncrementRound( int nNumRounds )
+        {
+                m_actualRoundsPlayed += nNumRounds;
+                CSGameRules()->SetTotalRoundsPlayed( m_actualRoundsPlayed );
+        }
+
+        void CCSMatch::AddTerroristBonusPoints( int points )  { AddTerroristScore( points ); }
+        void CCSMatch::AddCTBonusPoints( int points )         { AddCTScore( points ); }
+
+        void CCSMatch::AddTerroristScore( int score )
+        {
+                m_terroristScoreTotal += score;
+                if ( m_nOvertimePlaying > 0 )
+                        m_terroristScoreOvertime += score;
+                else if ( m_phase == GAMEPHASE_PLAYING_FIRST_HALF )
+                        m_terroristScoreFirstHalf += score;
+                else if ( m_phase == GAMEPHASE_PLAYING_SECOND_HALF )
+                        m_terroristScoreSecondHalf += score;
+                UpdateTeamScores();
+        }
+
+        void CCSMatch::AddCTScore( int score )
+        {
+                m_ctScoreTotal += score;
+                if ( m_nOvertimePlaying > 0 )
+                        m_ctScoreOvertime += score;
+                else if ( m_phase == GAMEPHASE_PLAYING_FIRST_HALF )
+                        m_ctScoreFirstHalf += score;
+                else if ( m_phase == GAMEPHASE_PLAYING_SECOND_HALF )
+                        m_ctScoreSecondHalf += score;
+                UpdateTeamScores();
+        }
+
+        void CCSMatch::GoToOvertime( int numOvertimesToAdd )
+        {
+                m_nOvertimePlaying += numOvertimesToAdd;
+                CSGameRules()->SetOvertimePlaying( m_nOvertimePlaying );
+        }
+
+        void CCSMatch::SwapTeamScores( void )
+        {
+                short temp;
+
+                temp = m_terroristScoreFirstHalf;
+                m_terroristScoreFirstHalf = m_ctScoreFirstHalf;
+                m_ctScoreFirstHalf = temp;
+
+                temp = m_terroristScoreSecondHalf;
+                m_terroristScoreSecondHalf = m_ctScoreSecondHalf;
+                m_ctScoreSecondHalf = temp;
+
+                temp = m_terroristScoreOvertime;
+                m_terroristScoreOvertime = m_ctScoreOvertime;
+                m_ctScoreOvertime = temp;
+
+                temp = m_terroristScoreTotal;
+                m_terroristScoreTotal = m_ctScoreTotal;
+                m_ctScoreTotal = temp;
+
+                UpdateTeamScores();
+        }
+
+        void CCSMatch::UpdateTeamScores( void )
+        {
+                CTeam *pTerrorists = GetGlobalTeam( TEAM_TERRORIST );
+                CTeam *pCTs = GetGlobalTeam( TEAM_CT );
+
+                if ( pTerrorists )
+                        pTerrorists->SetScore( m_terroristScoreTotal );
+                if ( pCTs )
+                        pCTs->SetScore( m_ctScoreTotal );
+        }
+
+        int CCSMatch::GetWinningTeam( void )
+        {
+                if ( m_terroristScoreTotal > m_ctScoreTotal )
+                        return TEAM_TERRORIST;
+                else if ( m_ctScoreTotal > m_terroristScoreTotal )
+                        return TEAM_CT;
+                return WINNER_DRAW;
+        }
+#endif // !CLIENT_DLL
+
+        // --------------------------------------------------------------------------------------------------- //
         // CCSGameRules implementation.
         // --------------------------------------------------------------------------------------------------- //
 
@@ -630,6 +819,14 @@ ConVar cl_autohelp(
                 m_bWarmupDone = false;
                 m_flWarmupEndTime = 0.0f;
                 m_flNextWarmupHint = 0.0f;
+
+                m_bSwapTeamsOnRestart = false;
+                m_bSwitchingTeamsAtRoundReset = false;
+                m_phaseChangeAnnouncementTime = 0.0f;
+                m_flLastThinkTime = 0.0f;
+                m_gamePhase = GAMEPHASE_PLAYING_STANDARD;
+                m_nOvertimePlaying = 0;
+                m_totalRoundsPlayed = 0;
 
         //=============================================================================
         // HPE_BEGIN
@@ -2392,6 +2589,9 @@ CCSPlayer* CCSGameRules::CheckAndAwardAssists( CCSPlayer* pCSVictim, CCSPlayer* 
 
                 m_iTotalRoundsPlayed++;
                 
+                if ( !bWasCompleteReset && HasHalfTime() )
+                        m_match.IncrementRound( 1 );
+
                 //ClearBodyQue();
 
                 // Hardlock the player accelaration to 5.0
@@ -2468,6 +2668,9 @@ CCSPlayer* CCSGameRules::CheckAndAwardAssists( CCSPlayer* pCSVictim, CCSPlayer* 
                         m_iNumConsecutiveTerroristLoses = 0;
                         m_iNumConsecutiveCTLoses                = 0;
 
+                        m_bSwapTeamsOnRestart = false;
+                        m_bSwitchingTeamsAtRoundReset = false;
+                        m_match.Reset();
 
                         // Reset team scores
                         UpdateTeamScores();
@@ -2996,6 +3199,82 @@ CCSPlayer* CCSGameRules::CheckAndAwardAssists( CCSPlayer* pCSVictim, CCSPlayer* 
                 //=============================================================================
                 // HPE_END
                 //=============================================================================
+
+                if ( !bWasCompleteReset )
+                {
+                        bool bClearAccountsAfterHalftime = false;
+
+                        if ( m_match.GetPhase() == GAMEPHASE_HALFTIME )
+                        {
+                                if ( GetOvertimePlaying() &&
+                                     ( GetTotalRoundsPlayed() <= ( mp_maxrounds.GetInt() + ( GetOvertimePlaying() - 1 ) * mp_overtime_maxrounds.GetInt() ) ) )
+                                {
+                                        // This is the overtime halftime: we're heading into the 2nd half of the current OT
+                                        m_match.SwapTeamScores();
+                                        m_match.SetPhase( GAMEPHASE_PLAYING_FIRST_HALF );
+                                }
+                                else
+                                {
+                                        // Regulation halftime finished — swap scores, go to 2nd half
+                                        m_match.SwapTeamScores();
+                                        m_match.SetPhase( GAMEPHASE_PLAYING_SECOND_HALF );
+                                }
+
+                                bClearAccountsAfterHalftime = true;
+                        }
+
+                        // Give fresh starting money at halftime
+                        if ( bClearAccountsAfterHalftime && HasHalfTime() )
+                        {
+                                for ( int idx = 1; idx <= gpGlobals->maxClients; idx++ )
+                                {
+                                        CCSPlayer *pPlayer = (CCSPlayer*) UTIL_PlayerByIndex( idx );
+                                        if ( !pPlayer )
+                                                continue;
+
+                                        int startMoney = mp_overtime_startmoney.GetInt() > 0 && GetOvertimePlaying() > 0
+                                                ? mp_overtime_startmoney.GetInt()
+                                                : GetStartMoney();
+
+                                        int adjust = -pPlayer->m_iAccount + startMoney;
+                                        pPlayer->AddAccount( adjust, false );
+                                }
+                                m_iNumConsecutiveTerroristLoses = 0;
+                                m_iNumConsecutiveCTLoses = 0;
+                                m_iLoserBonus = 1400;
+                        }
+
+                        // Increment the match round counter (after halftime transitions are done)
+                        if ( m_match.GetPhase() != GAMEPHASE_MATCH_ENDED &&
+                             m_match.GetPhase() != GAMEPHASE_HALFTIME )
+                        {
+                                m_match.IncrementRound( 0 ); // round already incremented via iTotalRoundsPlayed; just sync
+                        }
+
+                        // ---- Per-round center-print announcements ----
+                        if ( IsLastRoundBeforeHalfTime() )
+                        {
+                                UTIL_ClientPrintAll( HUD_PRINTCENTER, "#CStrike_TitlesTXT_Last_Round_Half" );
+                        }
+                        else if ( IsLastRoundOfMatch() )
+                        {
+                                UTIL_ClientPrintAll( HUD_PRINTCENTER, "#CStrike_TitlesTXT_Final_Round" );
+                        }
+                        else if ( IsMatchPoint() )
+                        {
+                                UTIL_ClientPrintAll( HUD_PRINTCENTER, "#CStrike_TitlesTXT_Match_Point" );
+                        }
+
+                        // Swap teams if needed (halftime side-switch)
+                        if ( m_bSwitchingTeamsAtRoundReset )
+                        {
+                                HandleSwapTeams();
+                                m_bSwapTeamsOnRestart = false;
+                        }
+                        m_bSwitchingTeamsAtRoundReset = false;
+                }
+
+                UnfreezeAllPlayers();
         }
 
         void CCSGameRules::GiveC4()
@@ -3073,6 +3352,8 @@ CCSPlayer* CCSGameRules::CheckAndAwardAssists( CCSPlayer* pCSVictim, CCSPlayer* 
         {
                 CGameRules::Think();
 
+                float flCurTime = gpGlobals->curtime;
+
                 for ( int i = 0; i < GetNumberOfTeams(); i++ )
                 {
                         GetGlobalTeam( i )->Think();
@@ -3084,20 +3365,100 @@ CCSPlayer* CCSGameRules::CheckAndAwardAssists( CCSPlayer* pCSVictim, CCSPlayer* 
                         return;
                 }
 
-                // have we hit the max rounds?
-                if ( CheckMaxRounds() )
+                // ---- Halftime countdown management ----
+                if ( m_match.GetPhase() == GAMEPHASE_HALFTIME )
                 {
-                        return;
+                        // Just wait for m_flRestartRoundTime to tick down — RestartRound handles the transition
                 }
+                // ---- Overtime / Halftime phase checking (in active half) ----
+                else if ( m_match.GetPhase() == GAMEPHASE_PLAYING_FIRST_HALF )
+                {
+                        int numRoundsBeforeHalftime = GetOvertimePlaying()
+                                ? ( mp_maxrounds.GetInt() + ( 2*GetOvertimePlaying() - 1 )*( mp_overtime_maxrounds.GetInt() / 2 ) )
+                                : ( mp_maxrounds.GetInt() / 2 );
 
-                // did somebaody hit the fraglimit ?
+                        bool bHalftime = false;
+                        if ( numRoundsBeforeHalftime > 0 )
+                        {
+                                if ( m_match.GetRoundsPlayed() >= numRoundsBeforeHalftime )
+                                        bHalftime = true;
+                        }
+
+                        if ( bHalftime )
+                        {
+                                m_match.SetPhase( GAMEPHASE_HALFTIME );
+                                m_phaseChangeAnnouncementTime = flCurTime + mp_win_panel_display_time.GetInt();
+                                m_flRestartRoundTime = flCurTime + mp_halftime_duration.GetFloat();
+                                SwitchTeamsAtRoundReset();
+                                FreezePlayers();
+                                UTIL_ClientPrintAll( HUD_PRINTCENTER, "#CStrike_TitlesTXT_End_Of_First_Half" );
+                        }
+                }
+                else if ( m_match.GetPhase() == GAMEPHASE_PLAYING_SECOND_HALF )
+                {
+                        int iNumWinsToClinch = GetNumWinsToClinch();
+                        bool bTeamClinchedVictory = false;
+
+                        if ( iNumWinsToClinch > 0 && HasHalfTime() )
+                        {
+                                bTeamClinchedVictory = ( m_match.GetCTScore() >= iNumWinsToClinch )
+                                        || ( m_match.GetTerroristScore() >= iNumWinsToClinch );
+                        }
+
+                        int numRoundToEndMatch = mp_maxrounds.GetInt() + GetOvertimePlaying() * mp_overtime_maxrounds.GetInt();
+                        bool bEndMatch = false;
+
+                        if ( numRoundToEndMatch > 0 )
+                        {
+                                if ( m_match.GetRoundsPlayed() >= numRoundToEndMatch || bTeamClinchedVictory )
+                                        bEndMatch = true;
+                        }
+                        else if ( GetMapRemainingTime() == 0.0f && m_iRoundWinStatus != WINNER_NONE )
+                        {
+                                bEndMatch = true;
+                        }
+
+                        if ( bEndMatch && mp_overtime_enable.GetBool() && !bTeamClinchedVictory )
+                        {
+                                // Tied — go to overtime
+                                bEndMatch = false;
+                                m_match.GoToOvertime( 1 );
+                                m_match.SetPhase( GAMEPHASE_HALFTIME );
+                                m_phaseChangeAnnouncementTime = flCurTime + mp_win_panel_display_time.GetInt();
+                                m_flRestartRoundTime = flCurTime + mp_halftime_duration.GetFloat();
+                                FreezePlayers();
+                                UTIL_ClientPrintAll( HUD_PRINTCENTER, "#CStrike_TitlesTXT_Overtime" );
+                        }
+
+                        if ( bEndMatch )
+                        {
+                                m_phaseChangeAnnouncementTime = flCurTime + mp_win_panel_display_time.GetInt();
+                                m_match.SetPhase( GAMEPHASE_MATCH_ENDED );
+                                GoToIntermission();
+                                m_flLastThinkTime = flCurTime;
+                                return;
+                        }
+                }
+                else if ( m_match.GetPhase() == GAMEPHASE_MATCH_ENDED )
+                {
+                        // Already going to intermission, nothing to do
+                }
+                else // GAMEPHASE_PLAYING_STANDARD — no halftime
+                {
+                        // have we hit the max rounds?
+                        if ( CheckMaxRounds() )
+                        {
+                                m_flLastThinkTime = flCurTime;
+                                return;
+                        }
+                        if ( CheckWinLimit() )
+                        {
+                                return;
+                        }
+                }
                 if ( CheckFragLimit() )
                 {
-                        return;
-                }
-
-                if ( CheckWinLimit() )
-                {
+                        m_flLastThinkTime = flCurTime;
                         return;
                 }
 
@@ -3123,39 +3484,30 @@ CCSPlayer* CCSGameRules::CheckAndAwardAssists( CCSPlayer* pCSVictim, CCSPlayer* 
                                 }
                         }
                 }
-                else if ( IsFreezePeriod() )
+                else if ( m_match.GetPhase() != GAMEPHASE_HALFTIME && m_match.GetPhase() != GAMEPHASE_MATCH_ENDED )
                 {
-                        CheckFreezePeriodExpired();
-                }
-                else
-                {
-                        CheckRoundTimeExpired();
+                        if ( IsFreezePeriod() )
+                                CheckFreezePeriodExpired();
+                        else
+                                CheckRoundTimeExpired();
                 }
 
                 CheckLevelInitialized();
                 
-                if ( m_flRestartRoundTime > 0.0f && m_flRestartRoundTime <= gpGlobals->curtime )
+                if ( m_flRestartRoundTime > 0.0f && m_flRestartRoundTime <= flCurTime )
                 {
                         bool botSpeaking = false;
                         for ( int i=1; i <= gpGlobals->maxClients; ++i )
                         {
                                 CBasePlayer *player = UTIL_PlayerByIndex( i );
-                                if (player == NULL)
-                                        continue;
-
-                                if (!player->IsBot())
+                                if ( !player || !player->IsBot() )
                                         continue;
                                 
                                 CCSBot *bot = dynamic_cast< CCSBot * >(player);
-                                if ( !bot )
-                                        continue;
-
-                                if ( bot->IsUsingVoice() )
+                                if ( bot && bot->IsUsingVoice() )
                                 {
-                                        if ( gpGlobals->curtime > m_flRestartRoundTime + 10.0f )
-                                        {
+                                        if ( flCurTime > m_flRestartRoundTime + 10.0f )
                                                 Msg( "Ignoring speaking bot %s at round end\n", bot->GetPlayerName() );
-                                        }
                                         else
                                         {
                                                 botSpeaking = true;
@@ -3165,16 +3517,16 @@ CCSPlayer* CCSGameRules::CheckAndAwardAssists( CCSPlayer* pCSVictim, CCSPlayer* 
                         }
 
                         if ( !botSpeaking )
-                        {
                                 RestartRound();
-                        }
                 }
                 
-                if ( gpGlobals->curtime > m_tmNextPeriodicThink )
+                if ( flCurTime > m_tmNextPeriodicThink )
                 {
                         CheckRestartRound();
-                        m_tmNextPeriodicThink = gpGlobals->curtime + 1.0;
+                        m_tmNextPeriodicThink = flCurTime + 1.0;
                 }
+
+                m_flLastThinkTime = flCurTime;
         }
 
 
@@ -4417,6 +4769,15 @@ CCSPlayer* CCSGameRules::CheckAndAwardAssists( CCSPlayer* pCSVictim, CCSPlayer* 
                 m_iRoundWinStatus = iWinnerTeam;
                 m_flRestartRoundTime = gpGlobals->curtime + tmDelay;
 
+                // Update halftime match score tracking
+                if ( HasHalfTime() && iReason != Game_Commencing )
+                {
+                        if ( iWinnerTeam == WINNER_CT )
+                                m_match.AddCTScore( 1 );
+                        else if ( iWinnerTeam == WINNER_TER )
+                                m_match.AddTerroristScore( 1 );
+                }
+
                 if ( iWinnerTeam == WINNER_CT )
                 {
                         for( int i=0;i<g_Hostages.Count();i++ )
@@ -4698,11 +5059,20 @@ CCSPlayer* CCSGameRules::CheckAndAwardAssists( CCSPlayer* pCSVictim, CCSPlayer* 
 
                 Assert( pTerrorists && pCTs );
 
-                if( pTerrorists )
-                        pTerrorists->SetScore( m_iNumTerroristWins );
-
-                if( pCTs )
-                        pCTs->SetScore( m_iNumCTWins );
+                if ( HasHalfTime() )
+                {
+                        if ( pTerrorists )
+                                pTerrorists->SetScore( m_match.GetTerroristScore() );
+                        if ( pCTs )
+                                pCTs->SetScore( m_match.GetCTScore() );
+                }
+                else
+                {
+                        if ( pTerrorists )
+                                pTerrorists->SetScore( m_iNumTerroristWins );
+                        if ( pCTs )
+                                pCTs->SetScore( m_iNumCTWins );
+                }
         }
 
 
@@ -5544,6 +5914,186 @@ bool CCSGameRules::IsFriendlyFireOn( void )
         return friendlyfire.GetBool();
 }
 
+#endif
+
+// ============================================================================
+// Halftime / Overtime helper implementations
+// ============================================================================
+
+bool CCSGameRules::HasHalfTime( void ) const
+{
+        return mp_halftime.GetBool();
+}
+
+bool CCSGameRules::IsLastRoundOfMatch( void ) const
+{
+        return mp_maxrounds.GetInt() > 0
+                ? ( GetTotalRoundsPlayed() == ( mp_maxrounds.GetInt() - 1 + GetOvertimePlaying() * mp_overtime_maxrounds.GetInt() ) )
+                : false;
+}
+
+int CCSGameRules::GetNumWinsToClinch( void ) const
+{
+        return ( mp_maxrounds.GetInt() > 0 && mp_match_can_clinch.GetBool() )
+                ? ( mp_maxrounds.GetInt() / 2 ) + 1 + GetOvertimePlaying() * ( mp_overtime_maxrounds.GetInt() / 2 )
+                : -1;
+}
+
+bool CCSGameRules::AreTeamsPlayingSwitchedSides( void ) const
+{
+        if ( !GetOvertimePlaying() )
+        {
+                switch ( GetGamePhase() )
+                {
+                case GAMEPHASE_PLAYING_SECOND_HALF:
+                        return true;
+                case GAMEPHASE_MATCH_ENDED:
+                        return HasHalfTime() && ( GetTotalRoundsPlayed() > ( mp_maxrounds.GetInt() / 2 ) );
+                default:
+                        return false;
+                }
+        }
+        else
+        {
+                switch ( GetGamePhase() )
+                {
+                case GAMEPHASE_PLAYING_SECOND_HALF:
+                        return ( GetOvertimePlaying() % 2 ) ? false : true;
+                case GAMEPHASE_MATCH_ENDED:
+                {
+                        bool bEnded = HasHalfTime() &&
+                                ( GetTotalRoundsPlayed() > mp_maxrounds.GetInt() + ( 2*GetOvertimePlaying() - 1 ) * ( mp_overtime_maxrounds.GetInt() / 2 ) );
+                        if ( GetOvertimePlaying() % 2 )
+                                bEnded = !bEnded;
+                        return bEnded;
+                }
+                case GAMEPHASE_HALFTIME:
+                {
+                        bool bSecond = HasHalfTime() &&
+                                ( GetTotalRoundsPlayed() <= ( mp_maxrounds.GetInt() + ( GetOvertimePlaying() - 1 ) * mp_overtime_maxrounds.GetInt() ) );
+                        int nOT = GetOvertimePlaying();
+                        if ( bSecond ) --nOT;
+                        if ( nOT % 2 ) bSecond = !bSecond;
+                        return bSecond;
+                }
+                default:
+                        return ( GetOvertimePlaying() % 2 ) ? true : false;
+                }
+        }
+}
+
+#ifndef CLIENT_DLL
+
+// Server-only halftime helpers
+bool CCSGameRules::IsLastRoundBeforeHalfTime( void )
+{
+        if ( HasHalfTime() )
+        {
+                int numRoundsBeforeHalftime = -1;
+                if ( m_match.GetPhase() == GAMEPHASE_PLAYING_FIRST_HALF )
+                {
+                        numRoundsBeforeHalftime = GetOvertimePlaying()
+                                ? ( mp_maxrounds.GetInt() + ( 2*GetOvertimePlaying() - 1 ) * ( mp_overtime_maxrounds.GetInt() / 2 ) )
+                                : ( mp_maxrounds.GetInt() / 2 );
+                }
+                if ( numRoundsBeforeHalftime > 0 &&
+                     m_match.GetRoundsPlayed() == ( numRoundsBeforeHalftime - 1 ) )
+                {
+                        return true;
+                }
+        }
+        return false;
+}
+
+bool CCSGameRules::IsMatchPoint( void ) const
+{
+        int iNumWinsToClinch = GetNumWinsToClinch();
+        if ( iNumWinsToClinch <= 0 )
+                return false;
+        if ( m_match.GetPhase() == GAMEPHASE_PLAYING_FIRST_HALF )
+                return false;
+
+        return ( m_match.GetCTScore()        == iNumWinsToClinch - 1 ||
+                 m_match.GetTerroristScore() == iNumWinsToClinch - 1 );
+}
+
+void CCSGameRules::SwitchTeamsAtRoundReset( void )
+{
+        m_bSwapTeamsOnRestart = true;
+        m_bSwitchingTeamsAtRoundReset = true;
+}
+
+void CCSGameRules::HandleSwapTeams( void )
+{
+        // Switch every player's team
+        for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+        {
+                CCSPlayer *pPlayer = ToCSPlayer( UTIL_PlayerByIndex( i ) );
+                if ( !pPlayer )
+                        continue;
+
+                int team = pPlayer->GetTeamNumber();
+                if ( team == TEAM_CT )
+                        pPlayer->SwitchTeam( TEAM_TERRORIST );
+                else if ( team == TEAM_TERRORIST )
+                        pPlayer->SwitchTeam( TEAM_CT );
+        }
+}
+
+void CCSGameRules::FreezePlayers( void )
+{
+        for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+        {
+                CCSPlayer *pPlayer = ToCSPlayer( UTIL_PlayerByIndex( i ) );
+                if ( pPlayer )
+                        pPlayer->AddFlag( FL_FROZEN );
+        }
+        m_bFreezePeriod = true;
+}
+
+void CCSGameRules::UnfreezeAllPlayers( void )
+{
+        for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+        {
+                CCSPlayer *pPlayer = ToCSPlayer( UTIL_PlayerByIndex( i ) );
+                if ( pPlayer )
+                        pPlayer->RemoveFlag( FL_FROZEN );
+        }
+}
+
+#else // CLIENT_DLL
+
+bool CCSGameRules::IsLastRoundBeforeHalfTime( void )
+{
+        if ( !HasHalfTime() )
+                return false;
+        if ( GetGamePhase() != GAMEPHASE_PLAYING_FIRST_HALF )
+                return false;
+
+        int numRoundsBeforeHalftime = GetOvertimePlaying()
+                ? ( mp_maxrounds.GetInt() + ( 2*GetOvertimePlaying() - 1 ) * ( mp_overtime_maxrounds.GetInt() / 2 ) )
+                : ( mp_maxrounds.GetInt() / 2 );
+
+        return ( numRoundsBeforeHalftime > 0 &&
+                 GetTotalRoundsPlayed() == ( numRoundsBeforeHalftime - 1 ) );
+}
+
+bool CCSGameRules::IsMatchPoint( void ) const
+{
+        int iNumWinsToClinch = GetNumWinsToClinch();
+        if ( iNumWinsToClinch <= 0 )
+                return false;
+        if ( GetGamePhase() == GAMEPHASE_PLAYING_FIRST_HALF )
+                return false;
+
+        C_Team *pCTs        = GetGlobalTeam( TEAM_CT );
+        C_Team *pTerrorists = GetGlobalTeam( TEAM_TERRORIST );
+
+        return ( ( pCTs        && pCTs->Get_Score()        == iNumWinsToClinch - 1 ) ||
+                 ( pTerrorists && pTerrorists->Get_Score() == iNumWinsToClinch - 1 ) );
+}
+
+#endif // CLIENT_DLL
 
 CON_COMMAND( map_showspawnpoints, "Shows player spawn points (red=invalid)" )
 {
@@ -5877,6 +6427,9 @@ CCSGameRules::CCSGameRules()
         CSGameRules()->m_StringTableBlackMarket = NULL;
         m_pPrices = NULL;
         m_bBlackMarket = false;
+        m_gamePhase = GAMEPHASE_PLAYING_STANDARD;
+        m_nOvertimePlaying = 0;
+        m_totalRoundsPlayed = 0;
 }
 
 void TestTable( void )
