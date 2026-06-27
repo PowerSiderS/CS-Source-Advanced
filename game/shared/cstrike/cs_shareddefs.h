@@ -267,18 +267,4 @@ const CCSClassInfo* GetCSClassInfo( int i );
 
 extern const char *pszWinPanelCategoryHeaders[];
 
-//=============================================================================
-// Match / Half-Time Phase
-//=============================================================================
-enum GamePhase
-{
-	GAMEPHASE_WARMUP_ROUND = 0,
-	GAMEPHASE_PLAYING_STANDARD,
-	GAMEPHASE_PLAYING_FIRST_HALF,
-	GAMEPHASE_PLAYING_SECOND_HALF,
-	GAMEPHASE_HALFTIME,
-	GAMEPHASE_MATCH_ENDED,
-	GAMEPHASE_MAX
-};
-
 #endif // CS_SHAREDDEFS_H
