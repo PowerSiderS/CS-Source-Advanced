@@ -32,11 +32,13 @@ private:
 	void ApplyHudColor( int r, int g, int b );
 
 	CLabeledCommandComboBox*	m_pPlayerCountPos;
-
-	CCvarToggleCheckButton*		m_pRadarSquare;
+	
 	CCvarSlider*				m_pRadarAlpha;
-	CCvarToggleCheckButton*		m_pRadarRotate;
 	CCvarSlider*				m_pRadarScale;
+	CCvarSlider*				m_pRadarSize;
+	
+	CCvarToggleCheckButton*		m_pRadarSquare;
+	CCvarToggleCheckButton*		m_pRadarRotate;
 	CCvarToggleCheckButton*		m_pXhairRainbow;
 	CCvarToggleCheckButton*		m_pXhairSniper;
 	CCvarToggleCheckButton*		m_pEnableColorHud;

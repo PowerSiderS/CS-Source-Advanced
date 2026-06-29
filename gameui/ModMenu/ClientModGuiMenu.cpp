@@ -22,11 +22,13 @@ ClientModGuiMenu::ClientModGuiMenu( vgui::Panel *parent ) : vgui::PropertyPage( 
 	m_pPlayerCountPos = new CLabeledCommandComboBox( this, "PlayerCountPosComboBox" );
 	m_pPlayerCountPos->AddItem( "#GameUI_GUI_PlayerCount_Bottom", "hud_playercount_pos 0" );
 	m_pPlayerCountPos->AddItem( "#GameUI_GUI_PlayerCount_Top", "hud_playercount_pos 1" );
-
+	
+	m_pRadarAlpha         = new CCvarSlider( this, "RadarAlphaSlider", "#GameUI_RadarAlpha", 0.0f, 255.0f, "cl_radaralpha" );
+	m_pRadarScale         = new CCvarSlider( this, "RadarScaleSlider", "#GameUI_RadarScale", 0.8f, 1.3f, "cl_radar_scale" );
+	m_pRadarSize         = new CCvarSlider( this, "RadarScaleSize", "#GameUI_RadarSize", 0.5f, 2.5f, "cl_radar_panel_scale" );
+	
 	m_pRadarSquare        = new CCvarToggleCheckButton( this, "RadarSquareCheckBox",         "#GameUI_RadarSquare",            "cl_radar_square_with_scoreboard" );
-	m_pRadarAlpha         = new CCvarSlider(            this, "RadarAlphaSlider",             "#GameUI_RadarAlpha",             0.0f, 255.0f, "cl_radaralpha" );
 	m_pRadarRotate        = new CCvarToggleCheckButton( this, "RadarRotateCheckBox",          "#GameUI_RadarRotate",            "cl_radar_rotate" );
-	m_pRadarScale         = new CCvarSlider(            this, "RadarScaleSlider",             "#GameUI_RadarScale",             0.8f, 1.3f, "cl_radar_scale" );
 	m_pXhairRainbow       = new CCvarToggleCheckButton( this, "XhairRainbowCheckBox",         "#GameUI_Crosshair_Rainbow",      "xhair_rainbow" );
 	m_pXhairSniper        = new CCvarToggleCheckButton( this, "XhairSniperCheckBox",          "#GameUI_Crosshair_Sniper",       "xhair_sniper" );
 	m_pEnableColorHud     = new CCvarToggleCheckButton( this, "HudColorCheckBox",             "#GameUI_Hud_Color",              "hud_colored" );
@@ -41,12 +43,14 @@ ClientModGuiMenu::ClientModGuiMenu( vgui::Panel *parent ) : vgui::PropertyPage( 
 	// Hex color text entry (RRGGBB)
 	m_pHudColorEntry = new TextEntry( this, "HudColorEntry" );
 	m_pHudColorEntry->SetMaximumCharCount( 6 );
-
+	
+	m_pRadarAlpha->AddActionSignalTarget( this );
+	m_pRadarScale->AddActionSignalTarget( this );
+	m_pRadarSize->AddActionSignalTarget( this );
+	
 	m_pPlayerCountPos->AddActionSignalTarget( this );
 	m_pRadarSquare->AddActionSignalTarget( this );
-	m_pRadarAlpha->AddActionSignalTarget( this );
 	m_pRadarRotate->AddActionSignalTarget( this );
-	m_pRadarScale->AddActionSignalTarget( this );
 	m_pXhairRainbow->AddActionSignalTarget( this );
 	m_pXhairSniper->AddActionSignalTarget( this );
 	m_pEnableColorHud->AddActionSignalTarget( this );
@@ -102,11 +106,13 @@ void ClientModGuiMenu::OnCheckButtonChecked()
 void ClientModGuiMenu::OnResetData()
 {
 	m_pPlayerCountPos->SetInitialItem( ConVarRef( "hud_playercount_pos" ).GetInt() );
-
-	m_pRadarSquare->Reset();
+	
 	m_pRadarAlpha->Reset();
-	m_pRadarRotate->Reset();
 	m_pRadarScale->Reset();
+	m_pRadarSize->Reset();
+	
+	m_pRadarSquare->Reset();
+	m_pRadarRotate->Reset();
 	m_pXhairRainbow->Reset();
 	m_pXhairSniper->Reset();
 	m_pEnableColorHud->Reset();
@@ -129,11 +135,13 @@ void ClientModGuiMenu::OnResetData()
 void ClientModGuiMenu::OnApplyChanges()
 {
 	m_pPlayerCountPos->ApplyChanges();
-
-	m_pRadarSquare->ApplyChanges();
+	
 	m_pRadarAlpha->ApplyChanges();
-	m_pRadarRotate->ApplyChanges();
 	m_pRadarScale->ApplyChanges();
+	m_pRadarSize->ApplyChanges();
+	
+	m_pRadarSquare->ApplyChanges();
+	m_pRadarRotate->ApplyChanges();
 	m_pXhairRainbow->ApplyChanges();
 	m_pXhairSniper->ApplyChanges();
 	m_pEnableColorHud->ApplyChanges();

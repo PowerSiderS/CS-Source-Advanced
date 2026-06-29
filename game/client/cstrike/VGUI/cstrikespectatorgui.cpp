@@ -42,6 +42,7 @@ ConVar cl_radar_scale( "cl_radar_scale", "2.0", FCVAR_ARCHIVE, "Sets the radar s
 ConVar hud_radar_display_name( "hud_radar_display_name", "0", FCVAR_ARCHIVE, "Show teammate names on the alive-player radar" );
 ConVar hud_radar_display_healthbar( "hud_radar_display_healthbar", "0", FCVAR_ARCHIVE, "Show teammate health bars on the alive-player radar" );
 ConVar hud_radar_display_line( "hud_radar_display_line", "0", FCVAR_ARCHIVE, "Show teammate movement trails on the alive-player radar" );
+ConVar cl_radar_panel_scale( "cl_radar_panel_scale", "1.0", FCVAR_ARCHIVE, "Scale the radar panel size. 1.0 = default. Range: 0.5 to 2.5.", true, 0.5f, true, 2.5f );
 
 void PreferredOverviewModeChanged( IConVar *pConVar, const char *oldString, float flOldValue )
 {
@@ -2185,8 +2186,10 @@ void CCSMapOverview::UpdateSizeAndPosition()
 				m_vPosition.y += g_pSpectatorGUI->GetTopBarHeight();
 			}
 
-			m_vSize.x = w;
-			m_vSize.y = w;// Intentionally not 't'.  We need to enforce square-ness to prevent people from seeing more of the map by fiddling their HudLayout
+			float flPanelScale = cl_radar_panel_scale.GetFloat();
+            m_vSize.x = (int)( w * flPanelScale );
+            m_vSize.y = m_vSize.x;
+            
 			break;
 		}
 
