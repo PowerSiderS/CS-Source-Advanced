@@ -27,6 +27,8 @@
 
 extern ConVar cl_crosshair_sniper_width;
 ConVar cl_crosshair_sniper_show_normal_inaccuracy( "cl_crosshair_sniper_show_normal_inaccuracy", "0", FCVAR_CLIENTDLL | FCVAR_ARCHIVE, "Include standing inaccuracy when determining sniper crosshair blur" );
+ConVar cl_ironsight_enable( "cl_ironsight_enable", "0", FCVAR_CLIENTDLL | FCVAR_ARCHIVE, "Draw iron-sight scope overlay for AUG and SSG552 when zoomed. 0 = off, 1 = on." );
+
 //-----------------------------------------------------------------------------
 // Purpose: Draws the zoom screen
 //-----------------------------------------------------------------------------
@@ -153,7 +155,7 @@ void CHudScope::Paint( void )
         CSWeaponID weaponID = pWeapon->GetWeaponID();
         if ( weaponID == WEAPON_AUG || weaponID == WEAPON_SG552 )
         {
-                if ( pPlayer->GetFOV() < pPlayer->GetDefaultFOV() )
+                if ( cl_ironsight_enable.GetBool() && pPlayer->GetFOV() < pPlayer->GetDefaultFOV() )
                 {
                         int screenWide, screenTall;
                         GetHudSize( screenWide, screenTall );
