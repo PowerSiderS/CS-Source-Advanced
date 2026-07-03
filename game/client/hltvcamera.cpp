@@ -238,7 +238,7 @@ void C_HLTVCamera::CalcChaseCamView( Vector& eyeOrigin, QAngle& eyeAngles, float
 		m_flLastTraceDist  = VectorLength( trace.endpos - targetOrigin1 );
 	}
 
-	float dist = m_vLastTraceEndPos;
+	float dist = m_flLastTraceDist;
 
 	// grow distance by 32 unit a second
   	m_flLastDistance += gpGlobals->frametime * 32.0f; 
@@ -249,7 +249,7 @@ void C_HLTVCamera::CalcChaseCamView( Vector& eyeOrigin, QAngle& eyeAngles, float
 	}
  	else
 	{
-		cameraOrigin = trace.endpos;
+		cameraOrigin = m_vLastTraceEndPos;
 		m_flLastDistance = dist;
 	}
 	
