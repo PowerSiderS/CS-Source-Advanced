@@ -19,6 +19,9 @@
 
 #endif
 
+#ifdef CLIENT_DLL
+extern ConVar cl_ironsight_enable;
+#endif
 
 class CWeaponAug : public CWeaponCSBaseGun
 {
@@ -39,7 +42,7 @@ public:
         virtual CSWeaponID GetWeaponID( void ) const            { return WEAPON_AUG; }
 
 #ifdef CLIENT_DLL
-        virtual bool    HideViewModelWhenZoomed( void ) { return true; }
+        virtual bool    HideViewModelWhenZoomed( void ) { return cl_ironsight_enable.GetBool(); }
 #endif
 
 private:
