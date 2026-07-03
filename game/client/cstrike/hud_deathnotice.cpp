@@ -135,6 +135,8 @@ private:
         CHudTexture             *m_iconD_blind;
         CHudTexture             *m_iconD_thrusmoke;
         CHudTexture             *m_iconD_penetrated;
+        CHudTexture             *m_iconD_dominated;
+        CHudTexture             *m_iconD_revenge;
 
         int                             m_iNemesisImageId;
         int                             m_iDominatedImageId;
@@ -164,6 +166,8 @@ CHudDeathNotice::CHudDeathNotice( const char *pElementName ) :
         m_iconD_blind = NULL;
         m_iconD_thrusmoke = NULL;
         m_iconD_penetrated = NULL;
+        m_iconD_dominated = NULL;
+        m_iconD_revenge = NULL;
 
         SetHiddenBits( HIDEHUD_MISCSTATUS );
 
@@ -216,6 +220,8 @@ void CHudDeathNotice::VidInit( void )
         m_iconD_blind = gHUD.GetIcon( "d_blind" );
         m_iconD_thrusmoke = gHUD.GetIcon( "d_thrusmoke" );
         m_iconD_penetrated = gHUD.GetIcon( "d_penetrated" );
+        m_iconD_dominated = gHUD.GetIcon( "d_dominated" );
+        m_iconD_revenge = gHUD.GetIcon( "d_revenge" );
         m_DeathNotices.Purge();
 }
 
@@ -247,7 +253,7 @@ bool CHudDeathNotice::ShouldDraw( void )
 //-----------------------------------------------------------------------------
 void CHudDeathNotice::Paint()
 {
-        if ( !m_iconD_headshot || !m_iconD_skull || !m_iconD_noscope || !m_iconD_blind || !m_iconD_thrusmoke || !m_iconD_penetrated )
+        if ( !m_iconD_headshot || !m_iconD_skull || !m_iconD_noscope || !m_iconD_blind || !m_iconD_thrusmoke || !m_iconD_penetrated || !m_iconD_dominated || !m_iconD_revenge )
                 return;
 
         int yStart = GetClientModeCSNormal()->GetDeathMessageStartHeight();
@@ -288,6 +294,34 @@ void CHudDeathNotice::Paint()
         // Penetrated (wallbang) icon size (font-rendered)
         int iconPenetratedWide = surface()->GetCharacterWidth( m_iconD_penetrated->hFont, m_iconD_penetrated->cCharacterInFont );
         int iconPenetratedTall = surface()->GetFontTall( m_iconD_penetrated->hFont );
+
+        // Dominated icon size
+        int iconDominatedWide, iconDominatedTall;
+        if ( m_iconD_dominated->bRenderUsingFont )
+        {
+                iconDominatedWide = surface()->GetCharacterWidth( m_iconD_dominated->hFont, m_iconD_dominated->cCharacterInFont );
+                iconDominatedTall = surface()->GetFontTall( m_iconD_dominated->hFont );
+        }
+        else
+        {
+                float scale = ( (float)ScreenHeight() / 480.0f );
+                iconDominatedWide = (int)( scale * (float)m_iconD_dominated->Width() );
+                iconDominatedTall = (int)( scale * (float)m_iconD_dominated->Height() );
+        }
+
+        // Revenge icon size
+        int iconRevengeWide, iconRevengeTall;
+        if ( m_iconD_revenge->bRenderUsingFont )
+        {
+                iconRevengeWide = surface()->GetCharacterWidth( m_iconD_revenge->hFont, m_iconD_revenge->cCharacterInFont );
+                iconRevengeTall = surface()->GetFontTall( m_iconD_revenge->hFont );
+        }
+        else
+        {
+                float scale = ( (float)ScreenHeight() / 480.0f );
+                iconRevengeWide = (int)( scale * (float)m_iconD_revenge->Width() );
+                iconRevengeTall = (int)( scale * (float)m_iconD_revenge->Height() );
+        }
 
         static wchar_t wszAssistSep[] = L" + ";
         int assistSepWide = UTIL_ComputeStringWidth( m_hTextFont, wszAssistSep );
@@ -375,8 +409,8 @@ if ( m_bRightJustify )
                         }
 
                         if (m_DeathNotices[i].iDominationImageId >= 0)
-                        {                               
-                                x -= dominationDrawWidth;
+                        {
+                                x -= (m_DeathNotices[i].iDominationImageId == m_iRevengeImageId) ? iconRevengeWide : iconDominatedWide;
                         }
                 }
 
@@ -428,11 +462,13 @@ if ( m_DeathNotices[i].bLocalKill )
 }
 
                 if (m_DeathNotices[i].iDominationImageId >= 0)
-                {                       
-                        surface()->DrawSetTexture(m_DeathNotices[i].iDominationImageId);
-                        surface()->DrawSetColor(m_DeathNotices[i].Killer.color);
-                        surface()->DrawTexturedRect( x, y, x + dominationDrawWidth, y + dominationDrawHeight );
-                        x += dominationDrawWidth;
+                {
+                        bool bRevenge = (m_DeathNotices[i].iDominationImageId == m_iRevengeImageId);
+                        CHudTexture *iconDomRev = bRevenge ? m_iconD_revenge : m_iconD_dominated;
+                        int domW = bRevenge ? iconRevengeWide : iconDominatedWide;
+                        int domH = bRevenge ? iconRevengeTall : iconDominatedTall;
+                        iconDomRev->DrawSelf( x, y, domW, domH, Color(255,255,255,255) );
+                        x += domW;
                 }
 
                 // Only draw killers name if it wasn't a suicide
