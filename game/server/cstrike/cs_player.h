@@ -435,7 +435,8 @@ public:
         virtual void Blind( float holdTime, float fadeTime, float startingAlpha = 255 );        // player blinded by a flashbang
         float m_blindUntilTime;
         float m_blindStartTime;
-
+        bool  m_bLastKillWasPenetrated;
+        
         void Deafen( float flDistance );                //make the player deaf / apply dsp preset to muffle sound
 
         void ApplyDeafnessEffect();                             // apply the deafness effect for a nearby explosion.

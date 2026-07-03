@@ -996,6 +996,8 @@ void CCSPlayer::ClearFlashbangScreenFade( void )
         // clear blind time (after screen fades are canceled)
         m_blindUntilTime = 0.0f;
         m_blindStartTime = 0.0f;
+        
+        m_bLastKillWasPenetrated = false;
 }
 
 void CCSPlayer::GiveDefaultItems()

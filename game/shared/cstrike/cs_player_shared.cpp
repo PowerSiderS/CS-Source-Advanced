@@ -390,7 +390,8 @@ void CCSPlayer::FireBullet(
 #ifndef CLIENT_DLL
 	// [pfreese] Track number player entities killed with this bullet
 	int iPenetrationKills = 0;
-
+	m_bLastKillWasPenetrated = false;
+	
 	// [menglish] Increment the shots fired for this player
 	CCS_GameStats.Event_ShotFired( this, GetActiveWeapon() );
 #endif
@@ -400,7 +401,8 @@ void CCSPlayer::FireBullet(
 //=============================================================================
 
 	bool bFirstHit = true;
-
+	bool bBulletHasPenetratedWall = false;
+	
 	CBasePlayer *lastPlayerHit = NULL;
 
 	if( sv_showplayerhitboxes.GetInt() > 0 )
@@ -585,6 +587,11 @@ void CCSPlayer::FireBullet(
 			++iPenetrationKills;
 		}
 		
+		if ( bBulletHasPenetratedWall )
+		{
+			m_bLastKillWasPenetrated = true;
+		}
+		
 		//=============================================================================
 		// HPE_END
 		//=============================================================================
@@ -661,6 +668,8 @@ void CCSPlayer::FireBullet(
 
 		// reduce penetration counter
 		iPenetration--;
+		
+		bBulletHasPenetratedWall = true;
 	}
 
 #ifndef CLIENT_DLL

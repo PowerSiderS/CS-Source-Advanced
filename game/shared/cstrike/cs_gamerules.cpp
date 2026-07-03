@@ -1376,7 +1376,10 @@ CCSPlayer* CCSGameRules::CheckAndAwardAssists( CCSPlayer* pCSVictim, CCSPlayer* 
                 }
 
                 bool bHeadshot = false;
-
+                bool bNoScope = false;
+                bool bBlind = false;
+                bool bPenetrated = false;
+                
                 if ( pScorer )  // Is the killer a client?
                 {
                         killer_ID = pScorer->GetUserID();
@@ -1385,6 +1388,29 @@ CCSPlayer* CCSGameRules::CheckAndAwardAssists( CCSPlayer* pCSVictim, CCSPlayer* 
                         {
                                 //to enable drawing the headshot icon as well as the weapon icon, 
                                 bHeadshot = true;
+                        }
+                        
+                        CCSPlayer *pCSKiller = ToCSPlayer( pScorer );
+                        if ( pCSKiller && pInflictor == pScorer )
+                        {
+                                CBaseCombatWeapon *pWpn = pScorer->GetActiveWeapon();
+                                if ( pWpn )
+                                {
+                                        const CCSWeaponInfo *pWpnInfo = dynamic_cast<const CCSWeaponInfo*>( &pWpn->GetWpnData() );
+                                        if ( pWpnInfo && pWpnInfo->m_WeaponType == WEAPONTYPE_SNIPER_RIFLE && !pCSKiller->m_bIsScoped )
+                                             bNoScope = true;
+                                }
+                        }
+                        
+                        if ( pCSKiller && pCSKiller->IsBlind() )
+                        {
+                                bBlind = true;
+                        }
+                        
+                        if ( pCSKiller && pCSKiller->m_bLastKillWasPenetrated )
+                        {
+                                bPenetrated = true;
+                                pCSKiller->m_bLastKillWasPenetrated = false;
                         }
                         
                         if ( pInflictor )
@@ -1439,6 +1465,9 @@ CCSPlayer* CCSGameRules::CheckAndAwardAssists( CCSPlayer* pCSVictim, CCSPlayer* 
                         event->SetInt("assister", assister_ID );
                         event->SetString("weapon", killer_weapon_name );
                         event->SetInt("headshot", bHeadshot ? 1 : 0 );
+                        event->SetInt("noscope", bNoScope ? 1 : 0 );
+                        event->SetInt("blind", bBlind ? 1 : 0 );
+                        event->SetInt("penetrated", bPenetrated ? 1 : 0 );
                         event->SetInt("priority", bHeadshot ? 8 : 7 );  // HLTV event priority, not transmitted
                         if ( pCSVictim->GetDeathFlags() & CS_DEATH_DOMINATION )
                         {
