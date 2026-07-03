@@ -73,6 +73,12 @@ protected:
 	char		m_szTitleText[64];
 	CUserCmd	m_LastCmd;
 	Vector		m_vecVelocity;
+
+	Vector		m_vLastTraceStart;		// targetOrigin1 used in last trace
+	Vector		m_vLastTraceEnd;		// cameraOrigin requested in last trace
+	Vector		m_vLastTraceEndPos;		// trace.endpos result cached
+	float		m_flLastTraceDist;		// cached dist from last trace
+	float		m_flTraceThrottleTime;	// realtime of last trace (throttle)
 };
 
 

@@ -102,6 +102,12 @@ void C_HLTVCamera::Reset()
 
 	m_LastCmd.Reset();
 	m_vecVelocity.Init();
+
+	m_vLastTraceStart.Init();
+	m_vLastTraceEnd.Init();
+	m_vLastTraceEndPos.Init();
+	m_flLastTraceDist   = 0.f;
+	m_flTraceThrottleTime = -1.f;
 }
 
 void C_HLTVCamera::CalcChaseCamView( Vector& eyeOrigin, QAngle& eyeAngles, float& fov )
@@ -215,13 +221,24 @@ void C_HLTVCamera::CalcChaseCamView( Vector& eyeOrigin, QAngle& eyeAngles, float
 
  	targetOrigin1.z += m_flOffset; // add offset
 
-	// clip against walls
-  	trace_t trace;
-	C_BaseEntity::PushEnableAbsRecomputations( false ); // HACK don't recompute positions while doing RayTrace
-	UTIL_TraceHull( targetOrigin1, cameraOrigin, WALL_MIN, WALL_MAX, MASK_SOLID, target1, COLLISION_GROUP_NONE, &trace );
-	C_BaseEntity::PopEnableAbsRecomputations();
+	const float TRACE_REUSE_DIST_SQ = 4.0f * 4.0f; // 4 units squared
+	bool bNeedRetrace =
+		m_vLastTraceStart.DistToSqr( targetOrigin1 ) > TRACE_REUSE_DIST_SQ ||
+		m_vLastTraceEnd.DistToSqr( cameraOrigin )    > TRACE_REUSE_DIST_SQ;
 
-  	float dist = VectorLength( trace.endpos -  targetOrigin1 );
+	if ( bNeedRetrace )
+	{
+		trace_t trace;
+		C_BaseEntity::PushEnableAbsRecomputations( false ); // HACK don't recompute positions while doing RayTrace
+		UTIL_TraceHull( targetOrigin1, cameraOrigin, WALL_MIN, WALL_MAX, MASK_SOLID, target1, COLLISION_GROUP_NONE, &trace );
+		C_BaseEntity::PopEnableAbsRecomputations();
+		m_vLastTraceStart  = targetOrigin1;
+		m_vLastTraceEnd    = cameraOrigin;
+		m_vLastTraceEndPos = trace.endpos;
+		m_flLastTraceDist  = VectorLength( trace.endpos - targetOrigin1 );
+	}
+
+	float dist = m_vLastTraceEndPos;
 
 	// grow distance by 32 unit a second
   	m_flLastDistance += gpGlobals->frametime * 32.0f; 
@@ -493,8 +510,15 @@ void C_HLTVCamera::PostEntityPacketReceived()
 
 void C_HLTVCamera::FixupMovmentParents()
 {
-	// Find resource zone
-	
+	if ( m_iTraget1 == 0 )
+		return;
+
+	const float FIXUP_INTERVAL = 0.066f; // ~one server tick
+	if ( gpGlobals->realtime - m_flTraceThrottleTime < FIXUP_INTERVAL )
+		return;
+
+	m_flTraceThrottleTime = gpGlobals->realtime;
+
 	for (	ClientEntityHandle_t e = ClientEntityList().FirstHandle();
 			e != ClientEntityList().InvalidHandle(); e = ClientEntityList().NextHandle( e ) )
 	{
@@ -554,6 +578,9 @@ void C_HLTVCamera::SetMode(int iMode)
 	int iOldMode = m_nCameraMode;
 	m_nCameraMode = iMode;
 
+	m_vLastTraceStart.Init();
+	m_vLastTraceEnd.Init();
+
 	IGameEvent *event = gameeventmanager->CreateEvent( "hltv_changed_mode" );
 	if ( event )
 	{
@@ -574,11 +601,8 @@ void C_HLTVCamera::SetPrimaryTarget( int nEntity )
 
 	if ( GetMode() == OBS_MODE_ROAMING )
 	{
-		Vector vOrigin;
-		QAngle aAngles;
-		float flFov;
-
-		CalcChaseCamView( vOrigin,  aAngles, flFov );
+		m_vLastTraceStart.Init();
+		m_vLastTraceEnd.Init();
 	}
 	else if ( GetMode() == OBS_MODE_CHASE )
 	{
