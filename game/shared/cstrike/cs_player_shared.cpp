@@ -571,7 +571,9 @@ void CCSPlayer::FireBullet(
 		//=============================================================================
 		
 		CBaseEntity *pEntity = tr.m_pEnt;
-
+		
+		m_bLastKillWasPenetrated = bBulletHasPenetratedWall;
+		
 		CTakeDamageInfo info( pevAttacker, pevAttacker, fCurrentDamage, iDamageType );
 		CalculateBulletDamageForce( &info, iBulletType, vecDir, tr.endpos );
 		pEntity->DispatchTraceAttack( info, vecDir, &tr );
@@ -585,11 +587,6 @@ void CCSPlayer::FireBullet(
 		if (bWasAlive && !pEntity->IsAlive() && pEntity->IsPlayer() && pEntity->GetTeamNumber() != GetTeamNumber())
 		{
 			++iPenetrationKills;
-		}
-		
-		if ( bBulletHasPenetratedWall )
-		{
-			m_bLastKillWasPenetrated = true;
 		}
 		
 		//=============================================================================
