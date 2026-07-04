@@ -73,7 +73,10 @@ ClientModMainMenu::ClientModMainMenu( vgui::Panel *parent ): vgui::PropertyPage(
 	m_pBackground->AddItem( "Cyan Eyes",      "cl_background 4" );
 	m_pBackground->AddItem( "Pillz Animated", "cl_background 5" );
 	m_pBackground->AddItem( "Face Girl",      "cl_background 6" );
-
+	m_pBackground->AddItem( "Source Club Brazil",      "cl_background 7" );
+	m_pBackground->AddItem( "Dzair Of GamerZ",      "cl_background 8" );
+	m_pBackground->AddItem( "Madrugadao Community",      "cl_background 9" );
+	
 	// Add action signal targets
 	m_pViewmodelOffsetX->AddActionSignalTarget( this );
 	m_pViewmodelOffsetY->AddActionSignalTarget( this );

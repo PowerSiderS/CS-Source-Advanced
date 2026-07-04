@@ -113,7 +113,7 @@ static WHANDLE g_hMutex = NULL;
 static WHANDLE g_hWaitMutex = NULL;
 
 // Main menu background selector.
-ConVar cl_background( "cl_background", "1", FCVAR_ARCHIVE, "Main menu background (1-6).", true, 1, true, 6 );
+ConVar cl_background( "cl_background", "1", FCVAR_ARCHIVE, "Main menu background (1-9).", true, 1, true, 9 );
 
 static IGameClientExports *g_pGameClientExports = NULL;
 IGameClientExports *GameClientExports()

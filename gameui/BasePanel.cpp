@@ -1443,7 +1443,7 @@ void CBasePanel::DrawBackgroundImage()
                         bool bIsWidescreen = ( (float)screenWide / (float)screenTall ) >= 1.5999f;
 
                         char filename[MAX_PATH];
-                        if ( bgIndex >= 2 && bgIndex <= 6 )
+                        if ( bgIndex >= 2 && bgIndex <= 9 )
                         {
                                 Q_snprintf( filename, sizeof( filename ), "console/background%02d%s",
                                         bgIndex, bIsWidescreen ? "_widescreen" : "" );
@@ -1928,7 +1928,7 @@ void CBasePanel::ApplySchemeSettings(IScheme *pScheme)
 
                 extern ConVar cl_background;
                 int bgIndex = cl_background.GetInt();
-                if ( bgIndex >= 2 && bgIndex <= 6 )
+                if ( bgIndex >= 2 && bgIndex <= 9 )
                 {
                         Q_snprintf( filename, sizeof( filename ), "console/background%02d%s", bgIndex, ( bIsWidescreen ? "_widescreen" : "" ) );
                 }
