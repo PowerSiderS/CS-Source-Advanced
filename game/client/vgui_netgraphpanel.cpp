@@ -732,111 +732,15 @@ void CNetGraphPanel::DrawTextFields( int graphvalue, int x, int y, int w, netban
 
 	int textTall = surface()->GetFontTall( font );
 
-	Q_snprintf( sz, sizeof( sz ), "fps:%4i   ping: %i ms", (int)(1.0f / m_Framerate), (int)(m_AvgLatency*1000.0f) );
+	Q_snprintf(
+    sz,
+    sizeof(sz),
+    "CS:S Advanced V5 | FPS:%4i   Ping:%ims",
+    (int)(1.0f / m_Framerate),
+    (int)(m_AvgLatency * 1000.0f)
+);
 
 	g_pMatSystemSurface->DrawColoredText( font, x, y, GRAPH_RED, GRAPH_GREEN, GRAPH_BLUE, 255, "%s", sz );
-
-	// Draw update rate
-	DrawUpdateRate( x + w, y );
-
-	y += textTall;
-
-	out = cmdinfo[ ( ( m_OutgoingSequence - 1 ) & ( TIMINGS - 1 ) ) ].size;
-	if ( !out )
-	{
-		out = lastout;
-	}
-	else
-	{
-		lastout = out;
-	}
-
-	int totalsize = graph[ ( m_IncomingSequence & ( TIMINGS - 1 ) ) ].msgbytes[INetChannelInfo::TOTAL];
-
-	Q_snprintf( sz, sizeof( sz ), "in :%4i   %2.2f k/s ", totalsize, m_IncomingData );
-
-	int textWidth = g_pMatSystemSurface->DrawTextLen( font, "%s", sz );
-
-	g_pMatSystemSurface->DrawColoredText( font, x, y, GRAPH_RED, GRAPH_GREEN, GRAPH_BLUE, 255, "%s", sz );
-
-	Q_snprintf( sz, sizeof( sz ), "lerp: %5.1f ms", GetClientInterpAmount() * 1000.0f );
-
-	int interpcolor[ 3 ] = { (int)GRAPH_RED, (int)GRAPH_GREEN, (int)GRAPH_BLUE }; 
-	float flInterp = GetClientInterpAmount();
-	if ( flInterp > 0.001f )
-	{
-		// Server framerate is lower than interp can possibly deal with
-		if ( m_flServerFramerate < ( 1.0f / flInterp ) )
-		{
-			interpcolor[ 0 ] = 255;
-			interpcolor[ 1 ] = 255;
-			interpcolor[ 2 ] = 31;
-		}
-		// flInterp is below recommended setting!!!
-		else if ( flInterp < ( 2.0f / cl_updaterate->GetFloat() ) )
-		{
-			interpcolor[ 0 ] = 255;
-			interpcolor[ 1 ] = 125;
-			interpcolor[ 2 ] = 31;
-		}
-	}
-
-	g_pMatSystemSurface->DrawColoredText( font, x + textWidth, y, interpcolor[ 0 ], interpcolor[ 1 ], interpcolor[ 2 ], 255, "%s", sz );
-
-	Q_snprintf( sz, sizeof( sz ), "%3.1f/s", m_AvgPacketIn );
-	textWidth = g_pMatSystemSurface->DrawTextLen( font, "%s", sz );
-
-	g_pMatSystemSurface->DrawColoredText( font, x + w - textWidth - 1, y, GRAPH_RED, GRAPH_GREEN, GRAPH_BLUE, 255, "%s", sz );
-
-	y += textTall;
-
-	Q_snprintf( sz, sizeof( sz ), "out:%4i   %2.2f k/s", out, m_OutgoingData );
-
-	g_pMatSystemSurface->DrawColoredText( font, x, y, GRAPH_RED, GRAPH_GREEN, GRAPH_BLUE, 255, "%s", sz );
-
-	Q_snprintf( sz, sizeof( sz ), "%3.1f/s", m_AvgPacketOut );
-	textWidth = g_pMatSystemSurface->DrawTextLen( font, "%s", sz );
-
-	g_pMatSystemSurface->DrawColoredText( font, x + w - textWidth - 1, y, GRAPH_RED, GRAPH_GREEN, GRAPH_BLUE, 255, "%s", sz );
-
-	y += textTall;
-
-	DrawCmdRate( x + w, y );
-
-	if ( graphvalue > 2 )
-	{
-		Q_snprintf( sz, sizeof( sz ), "loss:%3i    choke: %2i ", (int)(m_AvgPacketLoss*100.0f), (int)(m_AvgPacketChoke*100.0f) );
-
-		textWidth = g_pMatSystemSurface->DrawTextLen( font, "%s", sz );
-
-		g_pMatSystemSurface->DrawColoredText( font, x, y, GRAPH_RED, GRAPH_GREEN, GRAPH_BLUE, 255, "%s", sz );
-
-		y += textTall;
-
-		if ( graphvalue > 3 )
-		{
-			Q_snprintf( sz, sizeof( sz ), "sv  : %5.1f   var: %4.2f msec", m_flServerFramerate, m_flServerFramerateStdDeviation * 1000.0f );
-
-			int servercolor[ 3 ] = { (int)GRAPH_RED, (int)GRAPH_GREEN, (int)GRAPH_BLUE };
-
-			if ( m_flServerFramerate < 10.0f )
-			{
-				servercolor[ 0 ] = 255;
-				servercolor[ 1 ] = 31;
-				servercolor[ 2 ] = 31;
-			}
-			else if ( m_flServerFramerate < 20.0f )
-			{
-				servercolor[ 0 ] = 255;
-				servercolor[ 1 ] = 255;
-				servercolor[ 2 ] = 0;
-			}
-
-			g_pMatSystemSurface->DrawColoredText( font, x, y, servercolor[ 0 ], servercolor[ 1 ], servercolor[ 2 ], 255, "%s", sz );
-
-			y += textTall;
-		}
-	}
 
 	// Draw legend
 	if ( graphvalue >= 3 )
